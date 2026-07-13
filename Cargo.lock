@@ -801,6 +801,7 @@ dependencies = [
  "ed25519-dalek",
  "futures-util",
  "http",
+ "hyper-util",
  "pin-project-lite",
  "prost",
  "prost-types",
