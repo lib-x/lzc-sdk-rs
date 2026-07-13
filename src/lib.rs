@@ -7,8 +7,10 @@ mod credentials;
 mod device_transport;
 mod error;
 mod gateway;
+mod hserver;
 mod metadata;
 mod peer;
+mod service_address;
 mod service_status;
 
 #[allow(clippy::all, clippy::pedantic, non_camel_case_types)]
@@ -28,8 +30,10 @@ pub use credentials::{APP_CERT_PATH, APP_KEY_PATH, CA_PATH, ClientCredentials, C
 pub use device_transport::AuthenticatedService;
 pub use error::Error;
 pub use gateway::{ApiGateway, DeviceProxy};
+pub use hserver::{HServerClient, RemoteLocation, RemoteSocksEndpoint};
 pub use metadata::{REAL_UID_METADATA_KEY, with_real_uid};
 pub use peer::{Application, peer_application};
+pub use service_address::query_service_address;
 pub use service_status::{
     DeviceProxyStatus, ServiceState, ServiceStatus, ServiceStatusQuerier, ServiceStatusRegistry,
 };

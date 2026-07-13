@@ -76,6 +76,26 @@ pub enum Error {
     #[error("device service-status query is unsupported")]
     ServiceStatusUnsupported,
 
+    /// `HPortalSys` returned a malformed or unsupported `RemoteSocks` URL.
+    #[error("HPortalSys returned an invalid RemoteSocks endpoint")]
+    InvalidRemoteSocksEndpoint,
+
+    /// Resolving the `LazyCat` host-service address failed.
+    #[error("failed to resolve host.lzcapp: {source}")]
+    ServiceAddressLookup {
+        /// Underlying DNS lookup failure.
+        #[source]
+        source: io::Error,
+    },
+
+    /// No resolved host-service candidate had a usable local route.
+    #[error("no usable route to host.lzcapp")]
+    ServiceAddressNoRoute {
+        /// Last route-selection failure, when at least one candidate was tried.
+        #[source]
+        source: Option<io::Error>,
+    },
+
     /// A value cannot be represented as gRPC metadata.
     #[error("invalid gRPC metadata value")]
     InvalidMetadataValue(#[source] InvalidMetadataValue),
