@@ -72,6 +72,10 @@ pub enum Error {
     #[error("device auth token is not a valid gRPC metadata value")]
     InvalidAuthTokenMetadata,
 
+    /// The device does not implement the optional service-status API.
+    #[error("device service-status query is unsupported")]
+    ServiceStatusUnsupported,
+
     /// A value cannot be represented as gRPC metadata.
     #[error("invalid gRPC metadata value")]
     InvalidMetadataValue(#[source] InvalidMetadataValue),

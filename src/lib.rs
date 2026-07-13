@@ -6,8 +6,10 @@ mod connection;
 mod credentials;
 mod device_transport;
 mod error;
+mod gateway;
 mod metadata;
 mod peer;
+mod service_status;
 
 #[allow(clippy::all, clippy::pedantic, non_camel_case_types)]
 mod generated {
@@ -25,5 +27,9 @@ pub use connection::{PORTAL_SOCKET_PATH, RUNTIME_SOCKET_PATH, connect_api, conne
 pub use credentials::{APP_CERT_PATH, APP_KEY_PATH, CA_PATH, ClientCredentials, CredentialPaths};
 pub use device_transport::AuthenticatedService;
 pub use error::Error;
+pub use gateway::{ApiGateway, DeviceProxy};
 pub use metadata::{REAL_UID_METADATA_KEY, with_real_uid};
 pub use peer::{Application, peer_application};
+pub use service_status::{
+    DeviceProxyStatus, ServiceState, ServiceStatus, ServiceStatusQuerier, ServiceStatusRegistry,
+};

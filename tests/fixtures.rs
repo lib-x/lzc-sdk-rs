@@ -1,4 +1,4 @@
-#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_panics_doc, dead_code)]
 
 use std::fs;
 use std::path::Path;
