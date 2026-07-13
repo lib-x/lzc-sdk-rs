@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service ApkShell {
+  // 基于模板，根据传入的参数构建 APK
+  // 同一时间最多只能有一个构建任务在执行，并发的请求会阻塞
+  // 此方法不负责缓存生成的 APK，每次请求都会重新构建
+  rpc BuildApk(BuildApkRequest) returns (BuildApkResponse) {}
+  rpc GetVersion(google.protobuf.Empty) returns (GetVersionResponse) {}
+}
+
+message BuildApkRequest {
+  string app_id = 1;
+  string app_name = 2;
+  bytes app_icon = 3;
+}
+
+message BuildApkResponse {
+  bytes apk_data = 1;
+  bytes app_meta = 2;
+}
+
+message GetVersionResponse {
+  string version = 1;
+}

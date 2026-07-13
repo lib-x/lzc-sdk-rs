@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+// 面向客户端的系统通知接口。
+// 该接口只抽象各平台通知能力的最小公共集合：
+// 1. 标题和正文
+// 2. 用户点击后的默认动作
+//
+// Android / iOS / macOS / Windows / Linux 的通知实现细节不同，
+// 客户端可在本地补充平台必需参数，但应尽量保持这里定义的语义一致。
+service NotificationService {
+  // 向当前客户端发送一条系统级通知。
+  rpc Notify(NotifyRequest) returns (NotifyResponse) {}
+}
+
+message NotifyRequest {
+  // 通知标题。
+  string title = 1;
+
+  // 通知正文。
+  string body = 2;
+
+  // 用户点击通知后打开的 deeplink URL。
+  // 客户端这边；已经实现了一些 lzc:// 开头的方法， 这个逻辑可以复用
+  // 为空时表示仅展示通知，不指定跳转目标。
+  optional string deeplink_url = 3;
+}
+
+message NotifyResponse {}

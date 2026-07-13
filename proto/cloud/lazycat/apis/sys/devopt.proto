@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service DevOptService {
+  rpc SshdEnable(SshdEnableRequest) returns (google.protobuf.Empty) {}
+
+  rpc SshdEnabled(google.protobuf.Empty) returns (EnableSshdResponse) {}
+}
+
+message SshdEnableRequest {
+  // 是否开启 sshd 服务
+  bool enable = 1;
+
+  // root 密码（该字段仅当 Enable 为 true 时有效）
+  string password = 2;
+
+  // 若为true,则password字段的内容为对应公钥
+  bool password_is_public_key = 3;
+}
+
+message EnableSshdResponse {
+  // 是否开启了 sshd 服务
+  bool enabled = 1;
+}

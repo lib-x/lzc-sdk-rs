@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+// kk - deprecated
+service ButtonLedSessionService {
+  // 抢占一个按钮 LED 事务。
+  //    连接失败说明事务已经其它组件占用并且不可抢占
+  //    如果连接成功后来被异常断开，大概率说明事务被其它组件抢占（所以如果有必要，需要设置 Preemptable = false 来实现该事务不可抢占）
+  rpc Connect(stream LedStream) returns (stream ButtonStream);
+}
+
+message ButtonLedSessionInfo {
+  // 事务描述，仅用于调试
+  string Description = 1;
+
+  // 事务是否可以被抢占
+  bool Preemptable = 2;
+
+  // 是否需要使用功能按钮（若不使用功能按钮，请不要设置以便节约资源)
+  bool UseButton = 3;
+}
+
+message LedStream {
+  // LED 闪烁的亮暗比例（100%/65536）
+  //  0 表示一直暗，63356 表示一直亮
+  int32 DutyCycle = 1;
+
+  // LED 闪烁周期（完成一次闪烁的时间，单位：毫秒。设置状态后，按钮会根据所设置的比例先亮后灭）
+  int32 Period = 2;
+
+  // 事务信息（必须在所有 LED 状态请求之前指定）
+  optional ButtonLedSessionInfo Session = 3;
+}
+
+message ButtonStream {
+  enum ButtonEvent {
+    // 按钮被按下
+    BUTTON_DOWN = 0;
+
+    // 按钮被松开
+    BUTTON_UP = 1;
+
+    // 按钮被点击（按下后被快速松开，两次点击间隔不超过 500 毫秒）
+    // 当按钮被点击时，会先产生 BUTTON_DOWN 事件，然后产生 BUTTON_UP 事件，最后产生 BUTTON_CLICK 事件
+    // 如果只需要监听按钮被点击事件，可以忽略 BUTTON_DOWN 和 BUTTON_UP 事件
+    // 如果需要判断按钮是单击还是双击，需要自行等待 500 毫秒，如果没有收到 BUTTON_DOUBLE_CLICK 事件，则表示是单击
+    BUTTON_CLICK = 2;
+
+    // 按钮被双击（两次点击间隔不超过 500 毫秒）
+    // 当按钮被双击时，会产生两次 BUTTON_CLICK 事件后才产生 BUTTON_DOUBLE_CLICK 事件
+    // 如果只需要监听按钮被双击事件，可以忽略 BUTTON_CLICK、BUTTON_DOWN、BUTTON_UP 事件
+    BUTTON_DOUBLE_CLICK = 3;
+
+    // 按钮被长按（按下时间超过 2 秒还未松开）
+    // 按钮被长按的事件过程：会先产生 BUTTON_DOWN 事件，然后产生 BUTTON_LONG_PRESS 事件，等到按钮被松开时，会产生 BUTTON_UP 事件
+    BUTTON_LONG_PRESS = 4;
+
+    // 按钮被长按（按下时间超过 10 秒还未松开）
+    // 按钮被长按超过10秒的事件过程，会先产生 BUTTON_DOWN 事件，然后2秒后产生 BUTTON_LONG_PRESS 事件，然后8秒后产生 BUTTON_LONG_PRESS_10S 事件，等到按钮被松开时，会产生 BUTTON_UP 事件
+    BUTTON_LONG_PRESS_10S = 5;
+  }
+
+  // 按钮事件
+  ButtonEvent Event = 1;
+}

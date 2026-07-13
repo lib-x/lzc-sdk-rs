@@ -1,0 +1,54 @@
+[package]
+name = "lzc-sdk"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+description = "Rust SDK for LazyCat application and device APIs"
+repository = "https://github.com/lib-x/lzc-sdk-rs"
+readme = "README.md"
+keywords = ["lazycat", "grpc", "sdk"]
+categories = ["api-bindings", "network-programming"]
+
+[features]
+default = ["proto_full", "gateway", "remotesocks"]
+proto_full = []
+gateway = []
+remotesocks = ["gateway"]
+
+[dependencies]
+bytes = "1.10.1"
+ed25519-dalek = { version = "2.2.0", features = ["pkcs8"] }
+futures-util = "0.3.31"
+http = "1.3.1"
+pin-project-lite = "0.2.16"
+prost = "0.14.4"
+prost-types = "0.14.4"
+rsa = { version = "0.9.9", features = ["pem"] }
+rustls = { version = "0.23.41", default-features = false, features = ["ring", "std"] }
+rustls-pemfile = "2.2.0"
+secrecy = "0.10.3"
+socket2 = { version = "0.6.1", features = ["all"] }
+thiserror = "2.0.17"
+tokio = { version = "1.48.0", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+tokio-rustls = { version = "0.26.4", default-features = false, features = ["ring"] }
+tonic = { version = "0.14.6", features = ["tls-ring"] }
+tonic-prost = "0.14.6"
+tower = { version = "0.5.2", features = ["util"] }
+url = "2.5.7"
+x509-parser = "0.18.1"
+
+[dev-dependencies]
+rcgen = { version = "0.14.8", features = ["aws_lc_rs", "pem", "x509-parser"] }
+sha2 = "0.10.9"
+tempfile = "3.23.0"
+tokio-stream = { version = "0.1.17", features = ["net"] }
+
+[lints.rust]
+unsafe_code = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"

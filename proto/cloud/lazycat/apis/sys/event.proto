@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service EventService {
+  //正常的事件订阅发送接口
+  rpc Subscribe(SubscribeRequest) returns (stream Event);
+
+  rpc Send(SendRequest) returns (google.protobuf.Empty);
+}
+
+message SubscribeRequest {
+  string sender = 1;
+  string type = 2;
+}
+
+message Event {
+  string sender = 1; // 发送者的appid, 由EventService填充
+  string target = 2; // 接受者的appid
+
+  string type = 3;
+  string payload = 4;
+}
+
+message SendRequest {
+  string target = 1;
+  string type = 2;
+  string payload = 3;
+}

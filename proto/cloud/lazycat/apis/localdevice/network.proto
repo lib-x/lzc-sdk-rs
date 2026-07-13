@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service NetworkManager {
+  rpc Query(google.protobuf.Empty) returns (NetworkInformation) {}
+  // 获取附近的 Wi-Fi 网络列表，扫描过程中每发现一个热点就推送一次。
+  rpc ListWifiNetworks(ListWifiNetworksRequest) returns (stream WifiNetwork) {}
+  // 在本地网络执行 WS-Discovery Probe，返回在超时时间内收到的设备响应。
+  rpc WSDiscovery(WSDiscoveryRequest) returns (WSDiscoveryResponse) {}
+  // 通过手机客户端原生网络栈请求本地 http 资源。
+  rpc NativeHttpRequest(NativeHttpRequestRequest) returns (NativeHttpRequestResponse) {}
+}
+
+enum ConnectionType {
+  Unknown = 0;
+  CELL_NONE = 1;
+
+  ETHERNET = 2;
+
+  WIFI = 3;
+
+  CELL = 4;
+  CELL_2G = 5;
+  CELL_3G = 6;
+  CELL_4G = 7;
+  CELL_5G = 8;
+}
+
+message NetworkInformation {
+  ConnectionType ctype = 1;
+
+  bool IsOnline = 2;
+}
+
+message WifiNetwork {
+  // Wi-Fi 名称，隐藏网络时可能为空。
+  string ssid = 1;
+  // AP 的 MAC 地址。
+  string bssid = 2;
+  // 安全能力字符串，例如 [WPA2-PSK-CCMP][ESS]。
+  string capabilities = 3;
+}
+
+message ListWifiNetworksRequest {
+  //    扫描持续时间
+  int32 seconds = 1;
+}
+
+message WSDiscoveryRequest {
+  // 探测等待时间，默认由实现决定。实现方应限制最大值。
+  int32 timeout_ms = 1;
+  // 最多返回多少条设备结果，默认由实现决定。实现方应限制最大值。
+  int32 max_results = 2;
+  // WS-Discovery Probe Types 过滤条件，留空表示通用 Probe。
+  repeated string types = 3;
+  // WS-Discovery Probe Scopes 过滤条件，留空表示不限制。
+  repeated string scopes = 4;
+  // 仅返回来源 MAC 地址匹配的响应，留空表示不按 MAC 过滤。
+  string mac_addr = 5;
+}
+
+message WSDiscoveryDevice {
+  // 响应报文来源地址，格式通常为 ip:port。
+  string remote_addr = 1;
+  // WS-Discovery EndpointReference Address。
+  string endpoint = 2;
+  repeated string types = 3;
+  repeated string scopes = 4;
+  repeated string xaddrs = 5;
+  string metadata_version = 6;
+  // 原始 ProbeMatch XML，便于调用方兼容厂商扩展字段。
+  string raw_xml = 7;
+  // 响应报文来源 IP 在本地邻居/ARP 表中对应的 MAC 地址；非同二层网络时可能为空。
+  string mac_addr = 8;
+}
+
+message WSDiscoveryResponse {
+  repeated WSDiscoveryDevice devices = 1;
+}
+
+message NativeHttpRequestRequest {
+  string url = 1;
+  string method = 2;
+  map<string, string> headers = 3;
+  string body = 4;
+  string base64_body = 5;
+  int32 timeout_ms = 6;
+}
+
+message NativeHttpRequestResponse {
+  bool ok = 1;
+  int32 status = 2;
+  map<string, HeaderValues> headers = 3;
+  string body = 4;
+  string base64_body = 5;
+  bool truncated = 6;
+  string error = 7;
+}
+
+message HeaderValues {
+  repeated string values = 1;
+}

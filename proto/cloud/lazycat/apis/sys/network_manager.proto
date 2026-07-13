@@ -1,0 +1,199 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service NetworkManager {
+  // 获取网络设备的状态（是否已连接，连接了哪个）
+  rpc Status(google.protobuf.Empty) returns (NetworkDeviceStatusInfo) {}
+
+  // Scan 扫描附近wifi热点信息，扫描结果在内部缓存里（阻塞，可能耗费数秒）
+  rpc WifiScan(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+
+  // List 列出内部缓存中的 wifi 列表
+  rpc WifiList(google.protobuf.Empty) returns (AccessPointInfoList) {}
+
+  // 连接一个 wifi 热点
+  //   连接失败会删除已保存的配置，并自动连回上一次连接的 wifi（如果有的话），防止失联
+  rpc WifiConnect(WifiConnectInfo) returns (WifiConnectReply) {}
+
+  // 暂时连接一个 wifi 热点
+  // 时间到了之后会Revert回指定的 wifi 热点
+  // 如果在上一个调用的duration时间范围内再次调用，则会取消上次调用时间到后对fallback_bssid的连接
+  rpc WifiConnectTemp(WifiConnectTempInfo) returns (WifiConnectReply) {}
+
+  // 忘记一个 wifi 热点
+  rpc WifiForget(WifiForgetInfo) returns (google.protobuf.Empty) {}
+
+  // 手动添加和连接一个 wifi 热点配置（用于连接隐藏网络）
+  rpc WifiConfigAdd(WifiConfigInfo) returns (WifiConnectReply) {}
+
+  // (不建议使用) nmcli networking connectivity check
+  rpc GetConnectivity(google.protobuf.Empty) returns (GetConnectivityReply) {}
+
+  // 自己实现的，返回格式和 nmcli networking connectivity check 一样
+  rpc Connectivity(ConnectivityRequest) returns (ConnectivityReply) {}
+
+  // 直接调用 nmcli
+  rpc NmcliCall(NmcliCallRequest) returns (NmcliCallReply) {}
+}
+
+message AccessPointInfo {
+  // 热点的网卡 mac 地址（由于 ssid 可能重复，所以将此字段作为整个列表的 index）
+  string bssid = 1;
+
+  // 热点的 ssid
+  string ssid = 2;
+
+  // 信号强度（范围 0 <= signal <= 100）
+  int32 signal = 3;
+
+  // 信号频率
+  int32 frequency = 9;
+
+  // 是否需要密码
+  bool security = 4;
+
+  // 是否已连接
+  bool connected = 5;
+
+  // 是否已保存密码
+  bool saved = 6;
+
+  // 是否自动连接
+  bool auto_connected = 7;
+
+  // 是否锁定 bssid （锁定后，不会自动连接其他同名不同 bssid 的热点）
+  bool bssid_locked = 8;
+}
+
+message AccessPointInfoList {
+  repeated AccessPointInfo list = 1;
+}
+
+enum NetworkDeviceStatus {
+  NetworkDeviceStatusUnavailable = 0; // 不可用
+  NetworkDeviceStatusDisconnected = 1; // 未连接
+  NetworkDeviceStatusConnecting = 2; // 正在连接
+  NetworkDeviceStatusConnected = 3; // 已连接
+  NetworkDeviceStatusDisconnecting = 4; // 正在断开
+  NetworkDeviceStatusDisabled = 5; // 已禁用
+}
+
+message NetworkDeviceStatusInfo {
+  // 是否已连接到互联网
+  bool hasInternet = 1;
+
+  // 有线连接状态（已假设只有一块有线网卡）
+  NetworkDeviceStatus WiredDevice = 2;
+
+  // 无线设备状态（已假设只有一块无线网卡）
+  NetworkDeviceStatus WirelessDevice = 3;
+
+  // 网络协商速率
+  int64 link_speed = 5;
+
+  // 若无线设备已连接，则该字段表示已连接的 wifi 的信息
+  optional AccessPointInfo info = 4;
+}
+
+message WifiConnectInfo {
+  // bssid 和 ssid 指定其一即可
+  string bssid = 1;
+
+  // 当指定了 bssid 时，该值无效。所以要指定该值就不要指定 bssid
+  string ssid = 2;
+
+  // wifi 密码，如果 KeyMgmt 值是 KeyMgmtNone 则该值无效
+  string password = 3;
+
+  // 加密类型，该值一般不用指定，会自动嗅探，只有连接隐藏网络或手动添加网络才会用到此字段
+  optional KeyMgmt key_mgmt = 4;
+
+  // 连接超时时间（单位：秒），如果不指定则为 NetworkManager 默认行为。
+  // 如果连接超时，会当作失败处理抛出异常
+  optional int64 timeout = 5;
+}
+
+message WifiConnectTempInfo {
+  // 暂时连接的 bssid
+  string bssid = 1;
+
+  // 到时间后自动连接的 bssid
+  string fallback_bssid = 2;
+
+  // 连接持续时间（单位：秒），到时间后会自动连接回之前的 bssid
+  int64 duration = 5;
+}
+
+message WifiForgetInfo {
+  string ssid = 1;
+}
+
+enum KeyMgmt {
+  KeyMgmtNone = 0;
+  KeyMgmtWEP = 1; // WEP  （最老的协议了，目前几乎没人用）
+  KeyMgmtWPA_PSK = 2; // WPA/WPA2-Personal  （一般大概率都是这个，应当作为默认值）
+  KeyMgmtSAE = 3; // WPA3-Personal  （新一代协议，用的人比较少）
+}
+
+message WifiConfigInfo {
+  string ssid = 1;
+  string password = 2;
+  KeyMgmt key_mgmt = 3;
+}
+
+enum WifiConnectResult {
+  WifiConnectResultSuccess = 0;
+  WifiConnectResultNoSuchBssid = 1;
+  WifiConnectResultWrongPassword = 2;
+  WifiConnectResultUnknownError = 3;
+}
+
+message WifiConnectReply {
+  WifiConnectResult result = 1;
+}
+
+message ConnectivityRequest {
+  string url = 1;
+}
+
+message ConnectivityReply {
+  enum Connectivity {
+    None = 0;
+    Portal = 1;
+    Limited = 2;
+    Full = 3;
+    Unknown = 4;
+  }
+  Connectivity connectivity = 1;
+}
+
+message GetConnectivityReply {
+  enum Connectivity {
+    None = 0;
+    Portal = 1;
+    Limited = 2;
+    Full = 3;
+    Unknown = 4;
+  }
+  Connectivity connectivity = 1;
+}
+
+message NmcliCallRequest {
+  // nmcli connection add
+  repeated string args = 2;
+  message Upload {
+    string filename = 1;
+    bytes content = 2;
+  }
+  repeated Upload uploads = 3;
+}
+
+message NmcliCallReply {
+  // 命令的输出
+  string out = 1;
+}

@@ -1,8 +1,8 @@
 # Full LazyCat Rust SDK Design
 
 **Date:** 2026-07-13
-**Reference source:** `/home/czyt/code/ref/lzc-sdk`
-**Target repository:** `/home/czyt/code/rust/lzc-sdk-rs`
+**Reference source:** `https://gitee.com/linakesi/lzc-sdk`
+**Target repository:** this `lzc-sdk-rs` repository
 
 ## Goal
 
@@ -26,16 +26,19 @@ Build a production Rust SDK with functional parity to the official Go SDK in `la
 
 ## Source of Truth and Proto Sync
 
-The official repository remains read-only. The Rust repository vendors exact proto sources beneath `proto/` and records their upstream commit (`81adfc8` at design time) in `proto/UPSTREAM.md`.
+The official repository remains read-only. The Rust repository vendors the complete proto definitions beneath `proto/` and records their upstream commit (`81adfc8` at design time) in `proto/UPSTREAM.md`.
 
-`scripts/sync-protos.sh` copies:
+`scripts/sync-protos.sh` places files in Buf-standard package directories:
 
-- `protos/common/**` to `proto/common/**`;
-- `protos/dlna/**` to `proto/dlna/**`;
-- `protos/localdevice/**` to `proto/localdevice/**`;
-- `protos/sys/**` to `proto/sys/**`.
+- `cloud.lazycat.apis.common` under `proto/cloud/lazycat/apis/common/`;
+- `cloud.lazycat.apis.localdevice` under `proto/cloud/lazycat/apis/localdevice/`;
+- `cloud.lazycat.apis.sys` under `proto/cloud/lazycat/apis/sys/`;
+- `lzc.dlna` under `proto/lzc/dlna/`;
+- `io.containerd.cgroups.v2` under `proto/io/containerd/cgroups/v2/`.
 
-The Go SDK also depends on `lzc-baseos-protos` for `HPortalSys`. The Rust SDK vendors the referenced `baseos/hserver.proto` under `proto/baseos/hserver.proto` with its module version documented in `proto/UPSTREAM.md`.
+Imports are rewritten to those standard paths and `buf format` is applied; protobuf packages, messages, fields, enums, and services are unchanged. Original and transformed SHA-256 manifests make both sides auditable.
+
+The reference SDK sources use `lzc-baseos-protos` for `HPortalSys`. The Rust SDK vendors the referenced `baseos/hserver.proto` under the shared `proto/cloud/lazycat/apis/sys/` package directory with its module version documented in `proto/UPSTREAM.md`; Rust builds have no Go toolchain or source-checkout dependency.
 
 Generated Rust files are committed under `src/gen/`. Consumers do not need Buf or protoc at compile time. SDK maintainers run `scripts/generate.sh`, which installs pinned local codegen plugins into `.tools/` and runs:
 

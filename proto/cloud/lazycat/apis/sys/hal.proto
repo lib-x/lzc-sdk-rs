@@ -1,0 +1,184 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service HalService {
+  // Set 电源 LED (在 前面板上的 大个的 一条的 白色的)
+  rpc SetPLed(PLedState) returns (google.protobuf.Empty) {}
+  // Get 电源 LED (在 前面板上的 大个的 一条的 白色的)
+  rpc GetPLed(google.protobuf.Empty) returns (PLedState) {}
+  // Set 状态 LED (在 IO 面板上的 电源按钮边上的 小个的 红色的)
+  rpc SetSLed(SLedState) returns (google.protobuf.Empty) {}
+  // 最近 30s 内 Button 事件队列。同时 续命 Button 监测 到 当前时间 +5s
+  rpc GetButtonEventQueue(google.protobuf.Empty) returns (ButtonEventQueue) {}
+  // 返回当前按钮按下或弹起事件, 不会判断按钮是否为单击或长按
+  rpc GetRawButtonEvent(GetButtonEventRequest) returns (stream RawButtonEvent) {}
+  // 当指定的按钮事件发生时返回对应的事件
+  rpc TriggerWithButtonEvent(TriggerBtnRequest) returns (HIButtonEvent) {}
+  // 设置电源灯灯效, 当客户端stream主动取消时终止灯效, 还原为初始状态
+  rpc SetPLedEffect(PLedEffect) returns (stream google.protobuf.Empty) {}
+  // 获取系统风扇详细信息
+  rpc GetFanInfo(google.protobuf.Empty) returns (FanInfoResponse) {}
+  // 风扇转速
+  rpc GetFanRpm(google.protobuf.Empty) returns (FanRpm) {}
+  // 设置风扇配置
+  rpc SetFanConfig(SetFanConfigReq) returns (SetFanConfigResp) {}
+  // 获取风扇配置
+  rpc GetFanConfig(GetFanConfigReq) returns (GetFanConfigResp) {}
+}
+
+service FanService {
+  // 设置风扇配置
+  rpc SetFanConfig(SetFanConfigReq) returns (SetFanConfigResp) {}
+  // 获取风扇配置
+  rpc GetFanConfig(GetFanConfigReq) returns (GetFanConfigResp) {}
+}
+
+enum FanType {
+  CPU_FAN = 0;
+  MEM_FAN = 1;
+}
+
+message FanStatus {
+  FanType type = 1;
+  // current speed in rotate per min(RPM)
+  uint32 current_rpm = 2;
+
+  uint32 min_rpm = 3;
+  uint32 max_rpm = 4;
+  // pwm info
+  bool pwm_enabled = 5;
+  uint32 pwm_freq = 6;
+  uint32 current_pwm = 7;
+}
+
+message FanInfoResponse {
+  repeated FanStatus status = 1;
+  // installed fans
+  int32 fans_installed = 2;
+}
+
+message FanConfig {
+  // 静音模式：MANUAL , Percentage: 10 (较小值即可) 最低1000转左右
+  // 智能模式：SMART  , Percentage：100 (不需要)，自动调节
+  // 全速模式：MANUAL , Percentage：100
+  enum SpeedType {
+    UNSPECIFIED = 0;
+    // 手动，固定在百分比的转速
+    MANUAL = 1;
+    // 自动，自动调节转速
+    SMART = 2;
+  }
+  uint32 percentage = 1;
+  SpeedType speedType = 2;
+}
+
+message SetFanConfigReq {
+  FanConfig config = 1;
+}
+
+message SetFanConfigResp {}
+
+message GetFanConfigReq {}
+
+message GetFanConfigResp {
+  FanConfig config = 1;
+  uint32 fanRpm = 2;
+}
+
+message PLedState {
+  bool enabled = 1;
+}
+
+message SLedState {
+  bool enabled = 1;
+}
+
+message PLedEffect {
+  enum Effect {
+    WAVE = 0;
+    SEQUENTIAL_LTR = 1;
+    SEQUENTIAL_RTL = 2;
+    SWEEPING_LTR = 3;
+    SWEEPING_RTL = 4;
+
+    OSCILLATING = 5;
+    BLINK = 6;
+  }
+  Effect effect = 1;
+  // speed range: [1, 100]
+  int64 speed = 2;
+}
+
+message ButtonEventQueue {
+  enum ButtonEventKind {
+    // 按钮被按下
+    BUTTON_DOWN = 0;
+
+    // 按钮被松开
+    BUTTON_UP = 1;
+
+    // 按钮被点击（按下后被快速松开，两次点击间隔不超过 500 毫秒）
+    // 当按钮被点击时，会先产生 BUTTON_DOWN 事件，然后产生 BUTTON_UP 事件，最后产生 BUTTON_CLICK 事件
+    // 如果只需要监听按钮被点击事件，可以忽略 BUTTON_DOWN 和 BUTTON_UP 事件
+    // 如果需要判断按钮是单击还是双击，需要自行等待 500 毫秒，如果没有收到 BUTTON_DOUBLE_CLICK 事件，则表示是单击
+    BUTTON_CLICK = 2;
+
+    // 按钮被双击（两次点击间隔不超过 500 毫秒）
+    // 当按钮被双击时，会产生两次 BUTTON_CLICK 事件后才产生 BUTTON_DOUBLE_CLICK 事件
+    // 如果只需要监听按钮被双击事件，可以忽略 BUTTON_CLICK、BUTTON_DOWN、BUTTON_UP 事件
+    BUTTON_DOUBLE_CLICK = 3;
+
+    // 按钮被长按（按下时间超过 2 秒还未松开）
+    // 按钮被长按的事件过程：会先产生 BUTTON_DOWN 事件，然后产生 BUTTON_LONG_PRESS 事件，等到按钮被松开时，会产生 BUTTON_UP 事件
+    BUTTON_LONG_PRESS = 4;
+
+    // 按钮被长按（按下时间超过 10 秒还未松开）
+    // 按钮被长按超过10秒的事件过程，会先产生 BUTTON_DOWN 事件，然后2秒后产生 BUTTON_LONG_PRESS 事件，然后8秒后产生 BUTTON_LONG_PRESS_10S 事件，等到按钮被松开时，会产生 BUTTON_UP 事件
+    BUTTON_LONG_PRESS_10S = 5;
+  }
+  message ButtonEvent {
+    ButtonEventKind kind = 1;
+    google.protobuf.Timestamp timestamp = 2;
+  }
+  repeated ButtonEvent queue = 1;
+}
+
+message GetButtonEventRequest {
+  // 启用状态Led交互
+  bool SLedInteraction = 1;
+  // 启用电源Led交互
+  bool PLedInteraction = 2;
+}
+
+message RawButtonEvent {
+  enum RawButtonKind {
+    BUTTON_DOWN = 0;
+    BUTTON_UP = 1;
+  }
+  RawButtonKind kind = 1;
+}
+
+enum HIButtonKind {
+  BUTTON_CLICK = 0;
+  BUTTON_DOUBLE_CLICK = 1;
+  BUTTON_LONG_PRESS = 2;
+}
+
+message HIButtonEvent {
+  HIButtonKind kind = 1;
+}
+
+message TriggerBtnRequest {
+  HIButtonKind kind = 1;
+  GetButtonEventRequest reqOptions = 2;
+}
+
+message FanRpm {
+  int64 rpm = 1;
+}

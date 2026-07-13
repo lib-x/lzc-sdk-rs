@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "cloud/lazycat/apis/common/security_context.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+// 外围设备管理服务
+service PeripheralDeviceService {
+  // 如果有设备变动，就返回一下 Empty，使用方需要 ListFilesystems 来获取具体信息
+  rpc DeviceChanged(google.protobuf.Empty) returns (stream google.protobuf.Empty) {}
+  // 列出当前盒子已挂载 和 可以挂载但未挂载的文件系统
+  rpc ListFilesystems(google.protobuf.Empty) returns (ListFilesystemsReply) {}
+
+  // 与物理磁盘的文件系统解耦, 仅提供远程挂载的文件系统
+  rpc ListRemoteFilesystems(google.protobuf.Empty) returns (ListRemoteFilesystemReply) {}
+
+  // 挂载/卸载特定移动磁盘的某个分区到
+  // $APPID/lzcapp/run/mnt/media/$partition_uuid 目录上
+  rpc MountDisk(MountDiskRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_permissions = USER_DOCUMENT;
+  }
+
+  // 挂载 Smb/NFS/WebDAV 到 $APPID/lzcapp/run/mnt/home/$uid/.remotefs/$mountpoint 目录下
+  rpc MountRemoteDisk(MountRemoteDiskRequest) returns (MountRemoteDiskResp) {}
+
+  // 通过 uuid 或 mountpoint 卸载文件系统
+  rpc UmountFilesystem(UmountFilesystemRequest) returns (google.protobuf.Empty) {}
+
+  rpc MountArchive(MountArchiveRequest) returns (stream google.protobuf.Empty) {}
+
+  // 弹出外部存储设备
+  rpc PowerOffDisk(PowerOffDiskRequest) returns (google.protobuf.Empty) {}
+}
+
+message MountArchiveRequest {
+  string src_path = 1; // 要挂载的压缩文件的相对路径
+  string mountpoint = 2; // 压缩文件要挂载到的目标路径
+}
+
+message ListFilesystemsReply {
+  //当前APP未挂载的磁盘列表
+  repeated Filesystem umounted = 1;
+
+  //当前APP已挂载的磁盘列表。
+  repeated Filesystem mounted = 2;
+}
+
+message Filesystem {
+  string source = 1;
+
+  // ntfs/fat32/ext4 ...
+  string fstype = 2;
+
+  // partion label name or other meaningful name for user(eg. sda)
+  string name = 3;
+
+  // size unit in bytes
+  uint64 size = 4;
+
+  // uuid of filesystem, maybe nil(eg. for fuse)
+  optional string uuid = 5;
+
+  // mountpoint of filesystem, nil if it's not mounted
+  optional string mountpoint = 6;
+
+  // for mounted partition only, show if partition is read-only.
+  optional bool ro = 7;
+
+  // for mounted partition only, show partition usage in uint64
+  optional uint64 usedSize = 8;
+
+  // iscsi device info, only given when fs is on a iscsi device
+  optional ISCSIDeviceInfo iscsi_info = 9;
+}
+
+message ISCSIDeviceInfo {
+  string address = 1;
+  string IQN = 2;
+  string lun = 3;
+  optional string partion = 4;
+}
+
+message ListRemoteFilesystemReply {
+  repeated RemoteFilesystem fs = 1;
+}
+
+message RemoteFilesystem {
+  string source = 1;
+  FsType fstype = 2;
+  string name = 3;
+  string size = 4;
+  string path = 5;
+  string mountpoint = 6;
+  // remote connection healthy check
+  bool connected = 7;
+}
+
+message MountDiskRequest {
+  string uuid = 1;
+  string source = 2;
+}
+
+enum FsType {
+  SAMBA = 0;
+  NFS = 1;
+  WEBDAV = 2;
+}
+
+message MountRemoteDiskRequest {
+  string host = 1;
+  string path = 2;
+  FsType fstype = 3;
+  string mountpoint = 4;
+  string port = 5;
+  string options = 6;
+  string username = 7;
+  string password = 8;
+}
+
+message MountRemoteDiskResp {
+  bool success = 1;
+  repeated string key = 2;
+  string msg = 3;
+}
+
+message UmountFilesystemRequest {
+  oneof target {
+    string uuid = 1;
+    string mountpoint = 2;
+  }
+}
+
+message PowerOffDiskRequest {
+  string source = 1;
+}

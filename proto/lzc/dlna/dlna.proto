@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package lzc.dlna;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/dlna";
+
+// 目前支持搜索DLNA的Render设备，并投送媒体文件
+service RemoteMediaPlayerService {
+  rpc ScanRMP(google.protobuf.Empty) returns (ScanRMPResponse);
+
+  // 立刻返回选择的当前RMP状态，并在状态变动时重新发送
+  rpc Subscribe(SubscribeRequest) returns (stream RMPStatus);
+
+  rpc DoAction(DoActionRequest) returns (google.protobuf.Empty);
+
+  rpc GetPositionInfo(GetPositionInfoRequest) returns (GetPositionInfoResponse);
+}
+
+message GetPositionInfoRequest {
+  string player_uuid = 1;
+}
+
+message GetPositionInfoResponse {
+  string track = 1;
+  string track_duration = 2;
+  string track_metadata = 3;
+  string track_uri = 4;
+  string rel_time = 5;
+  string abs_time = 6;
+  int32 rel_count = 7;
+  int32 abs_count = 8;
+}
+
+message DoActionRequest {
+  enum Action {
+    Unknown = 0;
+
+    // 需要在mediaFile中设置对应的媒体路径，
+    // 支持http://类型或/开头的本地资源路径(相当于当前用户目录)
+    Play = 1;
+
+    Pause = 2;
+
+    // 若当前是paused状态，则恢复播放，否则不做任何处理，返回成功。
+    Continue = 3;
+
+    // 停止对此instance上的任何操作，后续操作需要重新调用play开始
+    Stop = 4;
+
+    Seek = 5;
+  }
+
+  string player_uuid = 1;
+
+  Action action = 2;
+
+  optional string media_file = 3;
+  optional string media_subtitle = 4;
+  optional string seek_target = 5;
+}
+
+message RMPStatus {
+  enum Status {
+    Unknown = 0;
+    Playing = 1;
+    Paused = 2;
+    Stopped = 3;
+  }
+  Status status = 1;
+}
+
+message ScanRMPResponse {
+  repeated RemoteMediaPlayer remote_media_players = 1;
+}
+
+message SubscribeRequest {
+  string player_uuid = 1;
+}
+
+message RemoteMediaPlayer {
+  string uuid = 1;
+  string name = 2;
+  string icon_data = 3;
+
+  //所处局域网信息，若为空表示处于盒子的局域网，
+  //否则为具体客户端peer id的局域网
+  string lan_region = 4;
+}

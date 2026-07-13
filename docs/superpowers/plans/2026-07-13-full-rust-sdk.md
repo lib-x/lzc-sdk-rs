@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement a complete Rust SDK matching the generated and handwritten capabilities of `/home/czyt/code/ref/lzc-sdk/lang/go`, publish it from `/home/czyt/code/rust/lzc-sdk-rs`, and replace Neko Webshell's local device-auth implementation with the SDK.
+**Goal:** Implement a complete Rust SDK matching the generated and handwritten capabilities of the official `gitee.com/linakesi/lzc-sdk/lang/go` package, publish this repository, and replace Neko Webshell's local device-auth implementation with the SDK.
 
 **Architecture:** Vendor the official proto tree and generate committed prost/tonic code with Buf. Build focused handwritten modules around tonic channels for runtime Unix sockets, mTLS device proxies, token metadata, HPortalSys, RemoteSocks, and compatibility helpers. Neko becomes a consumer of the SDK and no longer implements certificate signing or raw gRPC framing.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- The official repository `/home/czyt/code/ref/lzc-sdk` is read-only.
+- The official `gitee.com/linakesi/lzc-sdk` repository is read-only.
 - Copy all 41 official proto files and the referenced `lzc-baseos-protos` `hserver.proto`; record source revisions.
 - Generate both tonic clients and tonic servers for every service.
 - Generated code is committed; SDK consumers do not require Buf or protoc.
@@ -32,7 +32,7 @@
 - Create: `scripts/sync-protos.sh`
 - Create: `scripts/generate.sh`
 - Create: `proto/UPSTREAM.md`
-- Create: `proto/{common,dlna,localdevice,sys,baseos}/**/*.proto`
+- Create: `proto/{cloud,lzc,io}/**/*.proto`
 - Create: `src/gen/*.rs`
 - Create: `src/gen/mod.rs`
 - Create: `src/lib.rs`
@@ -44,7 +44,7 @@
 
 - [ ] **Step 1: Write the generation manifest test**
 
-Create `tests/proto_manifest.rs` that recursively compares `proto/{common,dlna,localdevice,sys}` with the official source by relative path and SHA-256, while allowing only documented `proto/baseos/hserver.proto` as an extra vendored dependency.
+Create `tests/proto_manifest.rs` that verifies transformed and original SHA-256 manifests and requires exactly 41 official protos plus `hserver.proto`.
 
 - [ ] **Step 2: Run the test to verify the empty crate fails**
 
@@ -102,7 +102,7 @@ tokio-stream = { version = "0.1.17", features = ["net"] }
 
 - [ ] **Step 4: Add deterministic proto sync**
 
-`scripts/sync-protos.sh` accepts optional environment variables `LZC_SDK_GO_SOURCE` and `LZC_BASEOS_PROTO_SOURCE`, defaults to the provided local repositories/module cache, deletes only the owned vendored proto directories, copies exact files, and writes upstream commit/module revisions to `proto/UPSTREAM.md`. With `--check`, it stages the expected tree in a temporary directory and fails on any diff without modifying the repository.
+`scripts/sync-protos.sh` fetches pinned upstream Git revisions by default, accepts optional `LZC_SDK_SOURCE` and `LZC_BASEOS_SOURCE` overrides for maintainers, deletes only the owned vendored proto directories, maps files to Buf-standard protobuf package directories, rewrites imports, applies `buf format`, and writes upstream revision plus original/transformed SHA-256 manifests. With `--check`, it stages the expected tree in a temporary directory and fails on any diff without modifying the repository. This maintenance tool is never part of Cargo build or SDK runtime.
 
 - [ ] **Step 5: Add deterministic Buf generation**
 
@@ -444,12 +444,12 @@ git push origin v0.1.0
 ### Task 9: Replace Neko's hand-written device authentication with the SDK
 
 **Files:**
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/Cargo.toml`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/Cargo.lock`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/src/client_terminal.rs`
-- Delete: `/home/czyt/code/rust/lazycat-neko-webshell/src/device_api_auth.rs`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/src/main.rs`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/src/client_terminal.rs` tests module with the SDK source-boundary and adapter regression tests.
+- Modify: `<neko-repository>/Cargo.toml`
+- Modify: `<neko-repository>/Cargo.lock`
+- Modify: `<neko-repository>/src/client_terminal.rs`
+- Delete: `<neko-repository>/src/device_api_auth.rs`
+- Modify: `<neko-repository>/src/main.rs`
+- Modify: `<neko-repository>/src/client_terminal.rs` tests module with the SDK source-boundary and adapter regression tests.
 
 **Interfaces:**
 - Consumes: released/path `lzc-sdk` `ApiGateway::device_proxy` and `DeviceProxy::get_auth_token`.
@@ -489,13 +489,13 @@ Install/deploy the release, request provider version, refresh the instance list,
 ### Task 10: Neko release, memory, and push
 
 **Files:**
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/Cargo.toml`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/Cargo.lock`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/package.json`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/package-lock.json`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/package.yml`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/README.md`
-- Modify: `/home/czyt/code/rust/lazycat-neko-webshell/README.en.md`
+- Modify: `<neko-repository>/Cargo.toml`
+- Modify: `<neko-repository>/Cargo.lock`
+- Modify: `<neko-repository>/package.json`
+- Modify: `<neko-repository>/package-lock.json`
+- Modify: `<neko-repository>/package.yml`
+- Modify: `<neko-repository>/README.md`
+- Modify: `<neko-repository>/README.en.md`
 
 - [ ] **Step 1: Bump Neko to 0.5.27 consistently**
 

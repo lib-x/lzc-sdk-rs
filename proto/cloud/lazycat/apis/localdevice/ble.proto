@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+service BleManager {
+  rpc ScanBle(ScanBleRequest) returns (stream BluetoothDevice) {}
+  rpc ConnectBle(ConnectBleRequest) returns (ConnectBleReply) {}
+  rpc Write(WriteRequest) returns (WriteReply) {}
+  rpc Read(ReadRequest) returns (ReadReply) {}
+  rpc Disconnect(DisconnectRequest) returns (DisconnectReply) {}
+  // 这里为了临时解决ai浏览器目前无法通过js api 获取到客户端的权限授权状态。
+  // 目前支持三种状态的查询: 文件,蓝牙，联系人。客户端会自动处理权限的兼容性问题
+  // 仅android 平台可用
+  rpc GetPermissionStatus(PermissionStatusRequest) returns (PermissionStatusReply) {}
+  rpc SubscribeCharacteristicNotification(SubscribeCharacteristicNotificationRequest) returns (stream SubscribeCharacteristicNotificationResponse) {}
+}
+
+message ScanBleRequest {
+  // 扫描带指定uuid服务的蓝牙设备
+  optional string service_uuid = 1;
+}
+
+message BluetoothDevice {
+  // 蓝牙名称
+  string device_name = 1;
+  // 设备地址(mac)
+  string device_address = 2;
+}
+
+message ConnectBleRequest {
+  // 设备地址(mac)
+  string device_address = 1;
+  // 连接的mtu参数.
+  optional int32 mtu = 2;
+}
+
+message ConnectBleReply {
+  repeated BleService services = 1;
+}
+
+message BleService {
+  // 服务uuid
+  string uuid = 1;
+  // 服务类型
+  int32 service_type = 2;
+  // 特征
+  repeated BluetoothGattCharacteristic gatt_characteristics = 3;
+}
+
+message BluetoothGattCharacteristic {
+  // 特征uuid
+  string uuid = 1;
+  // 特征属性
+  int32 properties = 2;
+}
+
+message WriteRequest {
+  // ble 地址
+  string device_address = 1;
+  // BluetoothGattCharacteristic 的uuid
+  string gatt_characteristic_uuid = 2;
+  bytes message = 3;
+}
+
+message WriteReply {
+  bool success = 1;
+}
+
+message ReadRequest {
+  // ble 地址
+  string device_address = 1;
+  // BluetoothGattCharacteristic 的uuid
+  string gatt_characteristic_uuid = 2;
+  // 读取消息超时时间，单位毫秒.由于native读取ble消息是异步的。
+  int32 timeout = 3;
+}
+
+message ReadReply {
+  bytes message = 1;
+}
+
+message DisconnectRequest {
+  // 设备地址(mac)
+  string device_address = 1;
+}
+
+message DisconnectReply {}
+
+enum PermissionGroupStatus {
+  UNKNOWN = 0; // 未知的（或用户未决定）
+  DENIED = 1; // 拒绝授权
+  AUTHORIZED = 2; // 批准
+  LIMITED = 3; // 有限授权（例如: Android 中未完全允许文件访问）
+}
+
+message PermissionStatusRequest {}
+
+message PermissionStatusReply {
+  PermissionGroupStatus status = 1;
+}
+
+message SubscribeCharacteristicNotificationRequest {
+  string device_address = 1;
+  string service_id = 2;
+  string gatt_characteristic_uuid = 3;
+  // 如果这个描述符号的uuid为空，那么将使用characteristic获取描述符号
+  string uuid_description = 4;
+}
+
+message SubscribeCharacteristicNotificationResponse {
+  bytes message = 1;
+}

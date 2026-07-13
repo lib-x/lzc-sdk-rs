@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service BtrfsUtil {
+  rpc SubvolCreate(BtrfsSubvolCreateRequest) returns (google.protobuf.Empty) {}
+
+  rpc SubvolInfo(BtrfsSubvolInfoRequest) returns (BtrfsSubvolInfoResponse) {}
+
+  rpc SubvolFindNew(BtrfsSubvolFindNewRequest) returns (BtrfsSubvolFindNewResponse) {}
+
+  rpc Rename(BtrfsRenameRequest) returns (google.protobuf.Empty) {}
+}
+
+message BtrfsSubvolCreateRequest {
+  string path = 1;
+  bool force = 2;
+}
+
+message BtrfsSubvolInfoRequest {
+  string path = 1;
+}
+
+message BtrfsSubvolInfoResponse {
+  string uuid = 1;
+  uint64 gen = 2;
+}
+
+message BtrfsSubvolFindNewRequest {
+  string path = 1;
+  uint64 gen = 2;
+}
+
+message BtrfsSubvolFindNewResponse {
+  repeated string files = 1;
+  uint64 gen = 2;
+}
+
+message BtrfsRenameRequest {
+  string src_path = 1;
+  // src and dest path must reside in same subvolume
+  // otherwise rename/reflink will fail
+  string dest_path = 2;
+  // reflink instead of rename
+  bool reflink = 3;
+}

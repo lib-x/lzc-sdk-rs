@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service VersionInfoService {
+  rpc Get(google.protobuf.Empty) returns (VersionInfo) {}
+}
+
+message VersionInfo {
+  string version = 1;
+}

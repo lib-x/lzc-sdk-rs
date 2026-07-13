@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+// this service is provied by frontend server, backend code shouldn't use it.
+service BrowserOnlyProxy {
+  // 查询当前登陆用户对应信息
+  rpc QuerySessionInfo(google.protobuf.Empty) returns (SessionInfo) {}
+
+  // 查询当前访问的lzcapp对应信息
+  rpc QueryAppInfo(google.protobuf.Empty) returns (AppInfo) {}
+
+  // 对devices.proto:_PairAllDeivces的自动封装
+  rpc PairAllDevices(google.protobuf.Empty) returns (stream google.protobuf.Empty) {}
+
+  rpc QueryAPIServerInfo(google.protobuf.Empty) returns (APIServerInfo) {}
+}
+
+message APIServerInfo {
+  string frontend_version = 1;
+  string backend_version = 2;
+}
+
+message SessionInfo {
+  // 当前登陆用户
+  string uid = 1;
+
+  // 当前登陆设备
+  string device_id = 2;
+
+  google.protobuf.Timestamp when = 3;
+}
+
+message AppInfo {
+  string box_id = 1;
+  string app_id = 2;
+  string app_domain = 3;
+
+  // APIGateway对所有而http service服务强制要求设置http header类型的
+  // AuthInfo. 但有些场景无法使用XHR去设置自定义的http header，导致访问
+  // 这些服务很困难，因此由/usr/bin/lzcapp统一提供一个代理服务来设置这个
+  // header. 此字段即是对应代理出来的URL前缀。默认为"/_lzc"，可以通过启动
+  // 参数调整。
+  string http_api_proxy_path = 4;
+}

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+enum SyncStatus {
+  // 就绪
+  Ready = 0;
+  // 同步中
+  Syncing = 1;
+  // 失败
+  Fail = 2;
+  // 失联
+  UnRef = 3;
+  // 完成
+  Finish = 4;
+}
+
+service OnewaySync {
+  // 列出所有符合来源微服和用户的同步目录j
+  rpc ListSyncDir(RequestSyncDir) returns (ResponseListSyncDir) {}
+  // 新建一个同步目录
+  rpc NewSyncDir(RequestSyncDir) returns (SyncDir) {}
+  // 主动做一次同步，目标是来源微服和来源用户的同步目录
+  rpc DoSync(google.protobuf.Empty) returns (SyncDir) {}
+}
+
+message RequestSyncDir {
+  string dir = 1;
+}
+
+message SyncDirOwner {
+  string boxId = 1;
+  string uid = 2;
+}
+
+message SyncDir {
+  // 需要同步的目录
+  string dir = 1;
+  // 当前同步状态
+  SyncStatus status = 2;
+  // 最后变化时间
+  google.protobuf.Timestamp lastModifiedTime = 3;
+  // 所属者(属于哪个盒子和用户)
+  SyncDirOwner owner = 4;
+}
+
+message ResponseListSyncDir {
+  repeated SyncDir dirs = 1;
+}

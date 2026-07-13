@@ -1,0 +1,233 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service PhotoLibrary {
+  rpc MakeAlbum(MakeAlbumRequest) returns (Album) {}
+
+  // 列举所有的系统相册
+  rpc ListAlbums(ListAlbumsRequest) returns (ListAlbumsReply) {}
+
+  // 存储一张图片到某个相册中
+  rpc PutPhoto(PutPhotoRequest) returns (stream PutPhotoReply) {}
+
+  rpc DeletePhoto(DeletePhotoRequest) returns (DeletePhotoReply) {}
+
+  // 枚举具体相册中的图片元信息
+  rpc ListPhotoMetas(ListPhotoMetasRequest) returns (stream PhotoMeta) {
+    option deprecated = true;
+  }
+
+  // 枚举相册中的资源（视频 & 图片）列表
+  rpc ListAssets(ListAssetsRequest) returns (stream PhotoMeta) {}
+
+  rpc QueryPhoto(QueryPhotoRequest) returns (PhotoMeta) {}
+  // 查询指定条件的的图片id信息
+  rpc ListAssetStats(ListAssetStatsRequest) returns (stream ListAssetStatsReply) {}
+  // 查询指定条件的的图片
+  rpc ListAssetsByIds(ListAssetsByIdsRequest) returns (stream PhotoMeta) {}
+  // 查询媒体资产 Url 路径
+  rpc QueryAssetUrlPath(google.protobuf.Empty) returns (QueryAssetUrlPathReply) {}
+  //  查询指定相册条件的的图片id信息
+  rpc ListAlbumAssetStats(ListAlbumAssetStatsRequet) returns (stream ListAlbumAssetStatsReply) {}
+  //  查询指定相册条件的的图片id信息，V2 使用字符串相册 ID
+  rpc ListAlbumAssetStatsV2(ListAlbumAssetStatsV2Requet) returns (stream ListAlbumAssetStatsReply) {}
+}
+
+// 查询照片信息的排序方式
+enum PhotoMetasSortType {
+  // 创建时间降序
+  CREATE_DATE_DESC = 0;
+  // 拍照时间降序
+  TAKEN_DATE_DESC = 1;
+  // 创建时间升序
+  CREATE_DATE_ASC = 2;
+  // 拍摄时间升序
+  TAKEN_DATE_ASC = 3;
+  // 创建时间,拍摄时间降序
+  CREATE_TAKEN_DESC = 4;
+  // 创建时间,拍摄时间升序
+  CREATE_TAKEN_ASC = 5;
+  // 拍摄时间，创建时间 降序
+  TOKEN_CREATE_DESC = 6;
+  // 拍摄时间，创建时间升序
+  TOKEN_CREATE_ASC = 7;
+}
+
+// 查询照片信息的排序方式
+enum ListAssetsSortType {
+  // 创建时间降序
+  ASSETS_CREATE_DATE_DESC = 0;
+  // 创建时间升序
+  ASSETS_CREATE_DATE_ASC = 1;
+  // 时间线降序
+  ASSETS_TIMELINE_DATE_DESC = 2;
+  // 时间线升序
+  ASSETS_TIMELINE_DATE_ASC = 3;
+  // 修改时间降序
+  ASSETS_MODIFIED_DATE_DESC = 4;
+  // 修改时间升序
+  ASSETS_MODIFIED_DATE_ASC = 5;
+}
+
+message QueryPhotoHashRequest {
+  // changed_after语义为: changed_after之后的新增文件都会加入返回的集合里,
+  // 与文件本身的modify time无关。
+  google.protobuf.Timestamp changed_after = 1;
+}
+
+message QueryPhotoRequest {
+  string id = 1;
+}
+
+message MakeAlbumRequest {
+  string title = 1;
+}
+message PutPhotoRequest {
+  string album_id = 1;
+
+  // 图片路径, 支持dataurl
+  string url = 2;
+
+  optional string file_name = 3;
+
+  // 可选，该album_name 仅在Android 平台下的DCIM/${album_name}/下载文件(主要是由于album_id有可能无法映射到Android平台的指定相册)。
+  optional string album_name = 4;
+}
+
+message PutPhotoReply {
+  // 是否完成. 若已完成则photo_id字段生效
+  bool done = 1;
+
+  // 若无total_size表示无法获取文件大小，此时无法计算出准确进度
+  optional int64 total_size = 2;
+  optional int64 fetched_size = 3;
+
+  // 新添加图片的id, 仅在completed=true后才有意义
+  optional string photo_id = 4;
+}
+
+message DeletePhotoReply {
+  // 删除失败的图片id
+  repeated string failed_id = 1;
+}
+
+message DeletePhotoRequest {
+  repeated string id = 1;
+}
+
+message ListPhotoMetasRequest {
+  // 相册ID, 若为空，则表示返回所有相册中的图片
+  repeated string album_ids = 1;
+
+  int32 thumbnail_width = 2;
+  int32 thumbnail_height = 3;
+
+  bool need_file_name = 4;
+  bool need_album_ids = 5;
+  // 不填写默认按照创建时间降序排序
+  optional PhotoMetasSortType stype = 6;
+  // 查询第几页(不填写默认为第一页)
+  optional uint32 page_num = 7;
+  // （每页返回的数据条数，不填写将返回所有数据）
+  optional uint32 page_size = 8;
+  // 是否过滤视频 （默认false,照片和视频信息一起返回)
+  optional bool is_filter_video = 9;
+  // 给定文件的修改时间过滤meta信息返回
+  optional google.protobuf.Timestamp filter_by_modified_date = 10;
+}
+
+message ListAssetsRequest {
+  // 相册ID， 若为空，则表示返回所有相册中的图片
+  repeated string album_ids = 1;
+  // 是否过滤视频 （默认false,照片和视频信息一起返回)
+  optional bool is_filter_video = 2;
+  // 排序方法
+  optional ListAssetsSortType sort_by = 3;
+  // 给定指定日期后的资源，为空表示获取全部
+  optional google.protobuf.Timestamp start_date = 4;
+}
+
+message PhotoMeta {
+  string id = 1;
+  string photo_url = 2; //浏览器直接可以使用的url, 可能是device domain下的一个文件或是一个data url
+  string thumbnail_url = 3;
+  string width = 4;
+  string height = 5;
+  repeated string album_ids = 6;
+  int64 size = 7;
+  string mime = 8;
+  optional string md5 = 9;
+  optional string file_name = 10;
+  optional google.protobuf.Timestamp creation_date = 11;
+  optional float latitude = 12;
+  optional float longitude = 13;
+  optional google.protobuf.Timestamp taken_date = 14;
+  optional google.protobuf.Timestamp modified_date = 15;
+  optional google.protobuf.Timestamp updated_at = 16;
+}
+
+message Album {
+  string id = 1;
+  string title = 2;
+  int32 image_count = 3;
+  int32 video_count = 4;
+  string cover_image_url = 5;
+  // 封面文件(图）id
+  string cover_image_id = 6;
+}
+
+message ListAlbumsRequest {
+  optional int32 thumbnail_width = 1;
+  optional int32 thumbnail_height = 2;
+  optional int32 thumbnail_choose_way = 3;
+}
+
+message ListAlbumsReply {
+  repeated Album albums = 1;
+}
+
+message ListAssetStatsRequest {
+  // 是否过滤视频 （默认false,照片和视频信息一起返回)
+  bool is_filter_video = 1;
+  // 排序方法
+  ListAssetsSortType sort_by = 2;
+
+  optional google.protobuf.Timestamp start_date = 3;
+}
+
+message ListAssetStatsReply {
+  string id = 1;
+  google.protobuf.Timestamp date = 2;
+  optional string mime = 3;
+  optional google.protobuf.Timestamp updated_at = 4;
+}
+message ListAssetsByIdsRequest {
+  repeated string ids = 1;
+  ListAssetsSortType sort_by = 2;
+}
+
+message QueryAssetUrlPathReply {
+  string asset_url = 1;
+  string thumbnail_url = 2;
+  string md5_url = 3;
+}
+
+message ListAlbumAssetStatsRequet {
+  int64 album_id = 1;
+}
+
+message ListAlbumAssetStatsV2Requet {
+  string album_id = 1;
+}
+
+message ListAlbumAssetStatsReply {
+  string id = 1;
+  google.protobuf.Timestamp date = 2;
+  optional string mime = 3;
+}

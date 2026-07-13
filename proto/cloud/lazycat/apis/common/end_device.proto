@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "cloud/lazycat/apis/common/security_context.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+// 懒猫云客户端设备管理服务
+service EndDeviceService {
+  // 枚举当前登陆用户所有的设备信息
+  rpc ListEndDevices(ListEndDeviceRequest) returns (ListEndDeviceReply) {}
+
+  // 移除指定uid下面的指定设备(如果设备id为空，将会移除所有的设备）
+  rpc RemoveEndDevice(RemoveEndDeviceRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+  // 设置设备备注名
+  rpc SetDeviceRemarkName(SetDeviceRemarkNameRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+}
+
+message EndDevice {
+  // TODO 待删除
+  string avoid_use_this_peer_id = 1;
+
+  bool is_online = 2;
+
+  // 因为device api的监听端口可能会变化，所以此url有效性不会太长
+  string device_api_url = 3;
+
+  // 由盒子维护的设备唯一ID，此ID是
+  // 根据客户端的多个特征推理出来的稳定ID
+  // 应用程序可以假设此ID是稳定不变的(实际依旧有可能变化)
+  string unique_deivce_id = 4;
+
+  // 设备型号，如果可以获取到
+  string model = 5;
+
+  // 设备名称，如果可以获取到
+  string name = 6;
+
+  // 设备绑定时间戳(即第一次成功登录的时间)
+  google.protobuf.Timestamp binding_time = 7;
+
+  // 设备是否是移动平台
+  bool is_mobile = 8;
+
+  // 设备是否是电视平台
+  bool is_tv = 9;
+
+  // 本次登录的时间戳(如果is_online=true)
+  google.protobuf.Timestamp login_time = 10;
+
+  // 设备设置的语言(e.g. zh-Hans)
+  // https://www.rfc-editor.org/rfc/rfc5646
+  string lang = 11;
+
+  // 设备设置的市区
+  // https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  string time_zone = 12;
+
+  // 当前设备是否是Wifi连接
+  // 目前仅移动端实现了此接口，桌面端平台未实现
+  optional bool is_wifi = 13;
+
+  // 设备备注名称
+  string remark_name = 14;
+}
+
+message ListEndDeviceRequest {
+  string uid = 1;
+}
+message ListEndDeviceReply {
+  repeated EndDevice devices = 1;
+}
+
+message RemoveEndDeviceRequest {
+  string uid = 1;
+  string unique_deivce_id = 2;
+}
+
+message SetDeviceRemarkNameRequest {
+  string uid = 1;
+  string unique_device_id = 2;
+  string remark_name = 3;
+}

@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service ContactsManager {
+  // 获取全部联系人列表
+  rpc ListContacts(google.protobuf.Empty) returns (ListContactsReply) {}
+  // 添加联系人到通讯录
+  rpc AddContacts(AddContactsRequest) returns (AddContactsReply) {}
+  // 从通讯录删除联系人
+  rpc DeleteContacts(DeleteContactsRequest) returns (DeleteContactsReply) {}
+  // 修改通讯录的联系人
+  rpc UpdateContacts(UpdateContactsRequest) returns (UpdateContactsReply) {}
+  // 获取联系人的数量
+  rpc GetContactsCount(GetContactsCountRequest) returns (GetContactsCountReply) {}
+  // 新增：流式获取全部联系人列表，避免大数据量时服务端崩溃，支持实时进度回调
+  rpc ListContactsStream(ListContactsStreamRequest) returns (stream ListContactsReply) {}
+}
+
+message Contact {
+  string id = 1;
+  string name = 2;
+  repeated string phones = 3;
+}
+
+message NewContact {
+  string name = 1;
+  repeated string phones = 2;
+}
+
+message ListContactsReply {
+  repeated Contact contacts = 1;
+}
+
+// 新增：流式请求参数
+message ListContactsStreamRequest {
+  // 每批次处理的联系人数量，默认100个，可根据网络情况和数据量调整
+  int32 batch_size = 1;
+}
+
+message AddContactsRequest {
+  repeated NewContact contacts = 1;
+}
+
+message AddContactsReply {}
+
+message DeleteContactsRequest {
+  repeated string ids = 1;
+}
+
+message DeleteContactsReply {
+  // 删除失败的 id
+  repeated string failed_ids = 1;
+}
+
+message UpdateContactsRequest {
+  repeated Contact contacts = 1;
+}
+
+message UpdateContactsReply {
+  // 修改失败的 id
+  repeated string failed_ids = 1;
+}
+
+message GetContactsCountRequest {}
+
+message GetContactsCountReply {
+  int64 count = 1;
+}

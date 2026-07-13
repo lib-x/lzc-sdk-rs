@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "cloud/lazycat/apis/common/security_context.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service UserManager {
+  //  获取所有盒子用户的uid信息(允许任意有效用户)
+  rpc ListUIDs(ListUIDsRequest) returns (ListUIDsReply) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = NORMAL_USER;
+  }
+  //  根据用户uid查询用户信息(允许任意有效用户)
+  rpc QueryUserInfo(UserID) returns (UserInfo) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = NORMAL_USER;
+  }
+  //  更新指定uid用户的nickname和avator(允许用户修改自己的用户信息)
+  rpc UpdateUserInfo(UpdateUserInfoRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+  //  修改指定uid的用户角色(管理员角色允许调用)
+  rpc ChangeRole(ChangeRoleReqeust) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+  //  通过验证旧密码修改新的密码(允许用户重置自己的密码)
+  rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+  // 删除用户信息(管理员角色允许调用)
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+  // 创建用户信息(管理员角色允许调用)
+  rpc CreateUser(CreateUserRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+  // 强制重置用户密码（管理员角色允许调用)
+  rpc ForceResetPassword(ForceResetPasswordRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+
+  // 检测用户密码有效性（是否能够登录）
+  rpc CheckPassword(CheckPasswordRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+}
+
+message UserID {
+  option (target_uid_field) = 1;
+  string uid = 1;
+}
+
+enum Role {
+  ROLE_NORMAL = 0;
+  ROLE_ADMIN = 1;
+}
+message CheckPasswordRequest {
+  string uid = 1;
+  string password = 2;
+}
+
+message UserInfo {
+  string uid = 1;
+  string nickname = 2;
+  string avatar = 3;
+  Role role = 4;
+  repeated string phone_number = 5;
+
+  bool has_app_install_permission = 6;
+}
+
+message ListUIDsRequest {}
+
+message ListUIDsReply {
+  repeated string uids = 1;
+}
+
+message ChangeRoleReqeust {
+  string uid = 1;
+  Role role = 2;
+}
+
+message ResetPasswordRequest {
+  string uid = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message DeleteUserRequest {
+  string uid = 1;
+  // 是否清理指定uid用户的数据目录
+  bool clear_user_data = 2;
+}
+
+message CreateUserRequest {
+  string uid = 1;
+  string password = 2;
+  Role role = 3;
+}
+
+message UpdateUserInfoRequest {
+  string uid = 1;
+  string nickname = 2;
+  string avatar = 3;
+  repeated string phone_number = 4;
+}
+
+message ForceResetPasswordRequest {
+  string uid = 1;
+  string new_password = 2;
+}

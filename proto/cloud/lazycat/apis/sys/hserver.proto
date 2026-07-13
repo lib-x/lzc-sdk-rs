@@ -1,0 +1,258 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-baseos-protos/lang/go/baseos";
+
+service HPortalSys {
+  // 查询HServer当前状态
+  rpc QueryHServerInfo(google.protobuf.Empty) returns (HServerInfo) {}
+
+  //  查询所有UID
+  rpc ListUsers(google.protobuf.Empty) returns (ListUsersReply) {}
+  //  创建用户信息
+  rpc CreateUser(CreateUserRequest) returns (google.protobuf.Empty) {}
+  //  删除用户信息
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {}
+  //  修改新的密码
+  rpc ResetPassword(ResetPasswordRequest) returns (google.protobuf.Empty) {}
+  //  校验用户密码是否正确
+  rpc CheckPassword(CheckPasswordRequest) returns (google.protobuf.Empty) {}
+  //  获取用户密码Hash（供备份还原使用）
+  rpc GetPasswordHash(GetPasswordHashRequest) returns (GetPasswordHashResponse) {}
+  //  设置用户密码Hash（供备份还原使用）
+  rpc SetPasswordHash(SetPasswordHashRequest) returns (google.protobuf.Empty) {}
+
+  //  根据用户uid查询用户信息
+  rpc QueryRole(UserID) returns (QueryRoleReply) {}
+  //  修改指定uid的用户角色
+  rpc ChangeRole(ChangeRoleReqeust) returns (google.protobuf.Empty) {}
+  //  添加或删除受信任设备
+  rpc ChangeTrustEndDevice(ChangeTrustEndDeviceRequest) returns (ChangeTrustEndDeviceReply) {}
+  // 根据UID返回所有的设备列表
+  rpc ListEndDevices(ListEndDeviceRequest) returns (ListEndDeviceReply) {}
+
+  // 获取remotesocks服务器地址
+  rpc RemoteSocks(RemoteSocksRequest) returns (RemoteSocksReply) {}
+
+  // 仅在盒子未初始化时，可以被调用。
+  rpc SetupHServer(SetupHServerRequest) returns (SetupHServerReply);
+  // 重置盒子
+  // 1. 向Origin请求释放盒子名下的所有域名
+  // 2. 清除本地的box.name
+  // 3. 进入为初始化状态
+  rpc ResetHServer(ResetHServerRequest) returns (ResetHServerReply);
+
+  // 注册盒子服务
+  // 任何原因导致此调用结束时，都会使此服务注销。(比如hportal重启)  // 调用者需要自行重新注册
+  rpc RegisterBoxService(RegisterBoxServiceRequest) returns (stream RegisterBoxServiceReply);
+  // 通知某个盒子服务发生变化
+  rpc EmitBoxServiceChanged(EmitBoxServiceChangedRequest) returns (google.protobuf.Empty);
+  // 通过远端IP地址和服务注册的IP地址查询peer信息
+  rpc QueryBoxServicePeerCred(QueryBoxServicePeerCredRequest) returns (QueryBoxServicePeerCredResponse);
+
+  rpc SetRelay(SetRelayRequest) returns (google.protobuf.Empty);
+
+  rpc DumpPeers(google.protobuf.Empty) returns (PeersInfo) {}
+}
+
+enum DialerRole {
+  GUEST_USER = 0; // 未登录也可以调用
+  NORMAL_USER = 1; // 登录的普通用户可以调用
+  ADMIN_USER = 2; // 登录的管理员可以调用
+}
+
+message RegisterBoxServiceRequest {
+  // 服务名称，建议使用 xx.yy.zz.nn 这种形式
+  // 如果此服务处于注册中，则后续请求会直接失败结束
+  string service_name = 1;
+
+  string service_network = 2; //tcp、udp
+  string service_address = 3; // $ip:$port
+
+  string description = 4; //服务的自描述信息
+
+  // 服务提供的额外信息，此信息会原封不动的传递给hclient端，
+  // service可以基于此机制进行进一步的安全认证等作用
+  string extra_info = 6;
+
+  // 需要调用者的身份
+  DialerRole require_dialer_role = 7;
+
+  // 只有客户端是受信任设备时可以调用
+  bool require_trust_dev = 8;
+}
+message RegisterBoxServiceReply {}
+
+message EmitBoxServiceChangedRequest {
+  string service_name = 1;
+}
+
+message QueryBoxServicePeerCredRequest {
+  string remote_addr = 1;
+  string local_addr = 2;
+  string protocol = 3;
+}
+message QueryBoxServicePeerCredResponse {
+  // 若客户端未登录，则是SRP认证的UID，否则是登录的UID
+  string uid = 1;
+  // string device_id = 2 [deprecated=true];
+  string device_version = 3;
+  string virtual_ip = 4;
+  string peer_id = 5;
+  bool is_logined = 6;
+  bool is_trust_dev = 7;
+}
+
+message RemoteSocksRequest {
+  enum LocationType {
+    Unkonwn = 0;
+
+    //在当前hserver所处的物理网络协议栈上提供socks服务
+    Local = 1;
+
+    //在指定的的hclient所处的物理网络协议栈上提供socks服务
+    Remote = 2;
+  }
+
+  LocationType location_type = 1;
+
+  string target = 2; // peer ID
+}
+
+message RemoteSocksReply {
+  string server_url = 1; //返回的socks5服务器地址
+}
+
+message ListUsersReply {
+  repeated string uids = 1;
+}
+
+message HServerInfo {
+  // 中心化服务器地址, 默认为origin.lazycat.cloud
+  string origin_server = 1;
+
+  // fc03:1136:38/40地址
+  string virtual_ip = 2;
+
+  // p2p节点id
+  string box_id = 3;
+
+  // 注册到origin-server内的名称
+  string box_name = 4;
+
+  // 从origin-server获取到的域名
+  string box_domain = 5;
+
+  // 当前使用的中继服务器地址，如/ip4/x.x.x.x/tcp/5500
+  string relay_server = 6;
+}
+
+message Device {
+  string peer_id = 1;
+
+  // 此设备当前是否连接到盒子
+  bool is_online = 2;
+
+  // 设备绑定时间
+  google.protobuf.Timestamp binding_time = 6;
+}
+
+message ListEndDeviceRequest {
+  string uid = 1;
+}
+
+message ListEndDeviceReply {
+  repeated Device devices = 1;
+}
+
+message UserID {
+  string uid = 1;
+}
+
+enum Role {
+  NORMAL = 0;
+  ADMIN = 1;
+}
+
+message ChangeRoleReqeust {
+  string uid = 1;
+  Role role = 2;
+}
+message QueryRoleReply {
+  string uid = 1;
+  Role role = 2;
+}
+
+message ResetPasswordRequest {
+  string uid = 1;
+  reserved 2;
+  string new_password = 3;
+}
+
+message DeleteUserRequest {
+  string uid = 1;
+}
+
+message CreateUserRequest {
+  string uid = 1;
+  string password = 2;
+  Role role = 3;
+}
+
+message CheckPasswordRequest {
+  string uid = 1;
+  string password = 2;
+}
+
+message ChangeTrustEndDeviceRequest {
+  string uid = 1;
+
+  string cid = 2; // peer ID
+
+  enum Action {
+    Add = 0;
+    Del = 1;
+  }
+  Action action = 3;
+}
+message ChangeTrustEndDeviceReply {}
+
+message SetupHServerRequest {
+  string origin_server = 1;
+  string box_name = 2;
+  string username = 3;
+  string password = 4;
+}
+message SetupHServerReply {
+  bool ok = 1;
+  string reason = 2;
+}
+
+message ResetHServerRequest {
+  string origin_server = 1;
+}
+message ResetHServerReply {}
+
+message PeersInfo {
+  string peer_info = 1;
+}
+
+message GetPasswordHashRequest {
+  string uid = 1;
+}
+message GetPasswordHashResponse {
+  string password_hash = 1;
+}
+
+message SetPasswordHashRequest {
+  string uid = 1;
+  string password_hash = 2;
+}
+
+message SetRelayRequest {
+  string relay_address = 1;
+}

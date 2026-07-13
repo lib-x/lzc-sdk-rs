@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service DirMonitor {
+  rpc FindNew(DirMonitorFindNewRequest) returns (DirMonitorFindNewResponse) {}
+  rpc FindNewStream(DirMonitorFindNewRequest) returns (stream StreamDirMonitorFindNewResp) {}
+}
+
+message DirMonitorFindNewRequest {
+  // 要查询的目标路径，必须在用户 home 下
+  string path = 1;
+  // 上次调用返回的 token，首次调用传空即可
+  bytes token = 2;
+}
+
+message DirMonitorFindNewResponse {
+  // 自从上次调用，指定目录下新增的文件
+  // 若传入 token 无效，则为所有文件
+  repeated string files = 1;
+  // 返回的 token 仅对请求时传入的路径有效
+  bytes token = 2;
+}
+
+message StreamDirMonitorFindNewResp {
+  // 与DirMonitorFindNewResponse相同
+  // 但是为了应对过多文件传输超出grpc传输
+  // 上限, 因此改为stream传输
+  repeated string files = 1;
+  bytes token = 2;
+}

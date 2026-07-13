@@ -1,0 +1,503 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "cloud/lazycat/apis/common/security_context.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "io/containerd/cgroups/v2/cgroup_metrics.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+/*
+ - pkg代表一个静态的lpk文件
+ - app代表一个安装后的应用(正在运行或没有运行)，是由某个pkg进行部署后产生的
+ - 除了app外，系统插件、系统服务等也会以pkg的形式进行传播、部署
+*/
+
+service PackageManager {
+  rpc InstallLPK(InstallLPKRequest) returns (InstallLPKResponse) {
+    option (cloud.lazycat.apis.common.scontext).require_permissions = INSTALL_PACKAGE;
+  }
+
+  // 列出已安装 LPK 的包级信息。仅管理员允许使用。
+  rpc ListLPK(ListLPKRequest) returns (ListLPKResponse) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+
+  // 根据 AppId 卸载应用
+  rpc Uninstall(UninstallRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_permissions = INSTALL_PACKAGE;
+  }
+
+  // 休眠应用
+  rpc Pause(AppInstance) returns (google.protobuf.Empty) {}
+
+  // 恢复应用
+  rpc Resume(AppInstance) returns (google.protobuf.Empty) {}
+
+  // 根据 AppId 清除缓存
+  rpc ClearCache(AppInstance) returns (google.protobuf.Empty) {}
+
+  // 调整Deploy相关配置
+  rpc ChangeDeployCfg(ChangeDeployCfgRequest) returns (ChangeDeployCfgResponse) {}
+
+  // 查询用户安装的特定应用的详情
+  rpc QueryApplication(QueryApplicationRequest) returns (QueryApplicationResponse) {}
+
+  // 获取应用下载进度, 安装进度等
+  rpc QueryPendingTask(QueryPendingTaskRequest) returns (QueryPendingTaskResponse) {}
+  rpc CancelPendingTask(CancelPendingTaskRequest) returns (CancelPendingTaskResponse) {}
+
+  // 监听应用安装，卸载事件
+  // 下载/安装的任务仅在关键状态变化时才会触发事件。
+  // 比如下载进度的变化不会触发事件，客户端应该进入时调用一次QueryPendingTask得到自己关注的任务并自行poll下载进度
+  // 当PendingTask列表变动时，会触发事件。
+  rpc SubscribeAppChange(SubscribeAppChangeRequest) returns (stream SubscribeAppChangeResponse) {}
+
+  // 查询实例对应的资源消耗
+  rpc QueryAppResource(QueryAppResourceRequest) returns (QueryAppResourceResponse) {}
+
+  // 获取应用占用的存储空间详情
+  rpc QueryAppStorageUsage(QueryAppStorageUsageRequest) returns (AppStorageUsage) {}
+  // 获取 AppCfg
+  rpc GetAppCfg(GetAppCfgRequest) returns (GetAppCfgResponse) {}
+
+  // 设置某个用户是否可以安装应用
+  rpc SetUserPermissions(UserPermission) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+
+  // 获取某个用户安装应用的权限
+  rpc GetUserPermissions(GetUserPermissionsRequest) returns (UserPermission) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = ADMIN_USER;
+  }
+
+  // 获取用某个应用打开某个文件的链接
+  rpc GetActionURL(GetActionURLRequest) returns (GetActionURLResponse) {}
+
+  // 列出可以打开指定 MIME 类型的应用
+  rpc ListFileHandler(ListFileHandlerRequest) returns (ListFileHandlerResponse) {}
+
+  // 请求停止自身的lzcapp实例，仅lzcapp内部可调用，多实例仅停止自身实例
+  rpc StopMySelf(StopMySelfRequest) returns (RestartMySelfResponse) {}
+
+  // 阻止当前lzcapp实例停止，流断开后解除阻止
+  rpc InhibitStop(stream StopProgress) returns (stream PrepareStop) {}
+
+  // 暂停下载特定应用 废弃字段!
+  rpc PauseAppDownload(Appid) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_permissions = INSTALL_PACKAGE;
+    option deprecated = true;
+  }
+  // 根据 URL 和 校验码（可选），安装应用
+  rpc Install(InstallRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_permissions = INSTALL_PACKAGE;
+    option deprecated = true;
+  }
+}
+
+message StopMySelfRequest {
+  // 停止后是否重新拉起
+  bool need_restart = 1;
+}
+
+message RestartMySelfResponse {}
+
+message InstallRequest {
+  // 内部地址
+  //     http://pkgm.api-server.lzcapp/tmp/xxxx-0.2.1.lpk
+  // 或外网地址
+  //     https://repo.lazycat.cloud/a/c/accc-0.2.1.lpk
+  string url = 2;
+
+  // pkg对应的sha256值，若不为空，
+  // 1. 本地有对应包的缓存，则会直接使用缓存
+  // 2. 本地若没有缓存，则会从 url 下载包，并校验包的 sha256 值
+  string sha256 = 3;
+
+  // 应用的 appid，若不指定则无下载中的状态
+  optional string appid = 1;
+
+  optional string subdomain = 4;
+
+  // 反正就是标题，一般是用来暂存，可能可以填入任何东西，不一定和应用标题相等
+  optional string title = 5;
+}
+
+message InstallLPKRequest {
+  string lpk_url = 1;
+
+  // 如果wait_unit_done=false，则install接口会立刻返回task_id，
+  // 以便客户端后续使用QueryPendingTask查询实时状态
+  // 若wait_unit_done=true， 则等待安装完成
+  optional bool wait_unit_done = 2;
+
+  // pkg对应的sha256值，若不为空，
+  // 1. 本地有对应包的缓存，则会直接使用缓存
+  // 2. 本地若没有缓存，则会从 url 下载包，并校验包的 sha256 值
+  optional string sha256 = 3;
+
+  // 应用的 pkg_id。如果指定，下载/安装过程中会屏蔽已经安装的pkg_id的显示
+  optional string pkg_id = 4;
+
+  // lpk未下载完成前显示的title
+  optional string tmp_title = 5;
+}
+
+message InstallLPKResponse {
+  PendingTaskInfo task_info = 1;
+}
+
+message UninstallRequest {
+  string appid = 1;
+
+  // 卸载后是否清空 data 目录 (/lzcapp/var)
+  bool clear_data = 2;
+}
+
+enum AppStatus {
+  NotInstalled = 0; // 应用未安装
+  Downloading = 1; // 应用下载中
+  Paused = 2; // 应用下载被暂停
+  Installing = 3; // 应用安装中
+  Installed = 4; // 应用已安装
+  Failed = 5; // 应用安装失败
+}
+
+message AppDownloadProgress {
+  // 当前下载了的字节
+  uint64 current = 1;
+  // LPK文件大小总字节
+  uint64 total = 2;
+}
+
+enum InstanceStatus {
+  Status_Error = 0;
+  Status_Paused = 1;
+  Status_Stopping = 2;
+  Status_Starting = 3;
+  Status_Running = 4;
+}
+
+message AppInfo {
+  string appid = 1;
+
+  // 应用当前的安装状态
+  AppStatus status = 2;
+
+  // 应用当前的运行状态。resource_only=true 时不设置。
+  optional InstanceStatus instance_status = 12;
+
+  optional string version = 3;
+
+  optional string title = 4;
+
+  optional string description = 5;
+
+  // 应用图标所在的 url，如 https://$boxdomain/sys/icons/$appid.png
+  // 若应用无图标，则为空
+  optional string icon = 6;
+
+  // 应用所在的域名，如 app.box.heiyu.space
+  optional string domain = 7;
+
+  // 应用下载的进度（如果不是正在下载应用，则为空）
+  optional AppDownloadProgress download_progress = 8;
+
+  // 应用是否是预装应用（预装应用不可卸载）
+  optional bool builtin = 9;
+
+  // 如果应用状态为安装失败，失败的原因（如果状态不是失败则为空）
+  optional string error_reason = 10;
+
+  repeated string unsupported_platforms = 11;
+
+  bool multi_instance = 13;
+
+  // 部署实例的id
+  string deploy_id = 14;
+  // 实例对应分配到的唯一子域名
+  string subdomain = 15;
+  // 实例所属的uid, owenr拥有对此实例的管理权限。
+  // 一个实例有且仅有一个owner
+  string owner = 16;
+
+  // 此实例是否支持调整部署参数
+  bool support_deploy_params = 17;
+
+  repeated AppEntry entries = 18;
+
+  // true 表示该条目是 resource-only LPK，不对应任何 deploy/app instance。
+  bool resource_only = 19;
+
+  // true 表示该 LPK 不应显示在 launcher 中，但不影响系统设置中的管理入口。
+  bool hidden_from_launcher = 20;
+}
+
+message ListLPKRequest {
+  // 为空表示返回所有已安装 LPK；非空时只返回指定 pkg_id。
+  repeated string pkg_ids = 1;
+}
+
+message ListLPKResponse {
+  repeated LPKInfo info_list = 1;
+}
+
+message LPKInfo {
+  string pkg_id = 1;
+  optional string version = 2;
+  optional string title = 3;
+  optional string description = 4;
+  optional string icon = 5;
+  optional bool builtin = 6;
+  bool resource_only = 7;
+  bool hidden_from_launcher = 8;
+}
+
+message AppEntry {
+  string id = 1;
+  string title = 2;
+  string path = 3;
+  optional string prefix_domain = 4;
+}
+
+message AppCfg {
+  bool background_task = 1;
+}
+
+message GetAppCfgRequest {
+  string appid = 1;
+}
+
+message GetAppCfgResponse {
+  AppCfg cfg = 1;
+}
+
+message ChangeDeployCfgRequest {
+  string deploy_id = 1;
+
+  // 设置新的子域名
+  optional string subdomain = 2;
+
+  // 设置是否开机自启动
+  optional bool autostart = 3;
+}
+
+message ChangeDeployCfgResponse {
+  enum Result {
+    OK = 0;
+    ErrorNoSuchDeploy = 1;
+    ErrorSubdomainExist = 2;
+    ErrorInvalidSubdomain = 3;
+  }
+  Result result = 1;
+}
+
+message QueryAppResourceRequest {
+  repeated string deploy_ids = 1;
+
+  // 如果为true则过滤掉不是uid部署的应用实例
+  optional bool only_onwer = 2;
+
+  // 返回cpu、mem、io等动态信息
+  // 仅运行中的实例有相关信息
+  optional bool calc_cgroup_metrics = 3;
+}
+
+message QueryAppResourceResponse {
+  // 实例对应的资源数据
+  map<string, io.containerd.cgroups.v2.Metrics> metrics = 1;
+
+  // 采样时间，部分字段是累积值，因此需要获取多次数据后计算出采样间隔。
+  // 然后根据采样间隔来计算出采样字段的变化速率
+  google.protobuf.Timestamp sample_time = 2;
+}
+
+message QueryApplicationRequest {
+  // 需要查询的 deploy_id 的列表，如果列表为空，则查询所有的应用
+  repeated string deploy_ids = 1;
+
+  // 仅管理员可以指定此字段，请求这个uid对应的数据
+  // 否则返回当前请求用户对应的数据
+  optional string other_uid = 2;
+
+  // 如果为true则过滤掉不是uid部署的应用实例
+  optional bool only_owner = 3;
+
+  // 不返回下载/安装中的任务, 使用QueryPendingTask查询下载中的任务
+  optional bool ignore_pending_pkg = 4;
+
+  // 搜索关键字（任意字符串），具体匹配策略由服务端实现
+  optional string filter = 5;
+
+  // 显式要求同时返回 resource-only LPK。仅管理员允许使用。
+  optional bool include_resource_only = 6;
+}
+
+message QueryApplicationResponse {
+  repeated AppInfo info_list = 1;
+}
+
+message QueryAppStorageUsageRequest {
+  string appid = 1;
+
+  bool need_pkg = 2;
+  bool need_data = 3;
+  bool need_cache = 4;
+  bool need_tmp = 5;
+
+  bool need_userdata = 6;
+
+  bool need_image = 7;
+}
+
+message AppStorageUsage {
+  // 应用本身占用的大小 (/lzcapp/pkg)
+  uint64 pkg = 1;
+
+  // 应用数据的大小 (所有用户产生的应用数据大小) (/lzcapp/var)
+  uint64 data = 2;
+
+  // 应用缓存的大小 (/lzcapp/cache)
+  uint64 cache = 3;
+
+  // 应用临时文件的大小 (/tmp)
+  uint64 tmp = 4;
+
+  // 各个用户产生的应用数据大小 (/lzcapp/var/userdata/$uid)
+  reserved 5;
+
+  uint64 image = 6;
+}
+
+message UserPermission {
+  // 用户的 uid
+  string uid = 1;
+
+  // 是否允许 uid 安装应用
+  bool allow_install_app = 2;
+}
+
+message GetUserPermissionsRequest {
+  // 用户的 uid
+  string uid = 1;
+}
+
+message Appid {
+  option deprecated = true;
+  string appid = 1;
+}
+
+enum Action {
+  Open = 0;
+  New = 1;
+  Download = 2;
+}
+
+message GetActionURLRequest {
+  string path = 1;
+  string appid = 2;
+  Action action = 3;
+}
+
+message GetActionURLResponse {
+  string url = 1;
+}
+
+message ListFileHandlerRequest {
+  string mimetype = 1;
+}
+
+message FileHandlerInfo {
+  string appid = 1;
+  string title = 2;
+  string icon = 3;
+}
+
+message ListFileHandlerResponse {
+  repeated FileHandlerInfo info_list = 1;
+}
+
+message AppInstance {
+  string appid = 1;
+  string uid = 2;
+
+  // 如果有deploy_id则不理会appid与uid
+  // 新代码都应该使用deploy_id
+  string deploy_id = 3;
+}
+
+message SubscribeAppChangeRequest {
+  // 需要查询的 AppId 的列表，如果列表为空，则查询所有的应用
+  repeated string appid_list = 1;
+}
+
+message SubscribeAppChangeResponse {}
+
+message PendingTaskInfo {
+  enum PendingTaskStatus {
+    Unknown = 0;
+    CREATING = 1;
+    DOWNLOADING = 2;
+    IMAGE_PULLING = 3; //拉取镜像中
+    INSTALLING = 4;
+    PAUSED = 5;
+    DOWNLOAD_ERR = 6;
+    INSTALL_ERR = 7;
+    INSTALL_OK = 8;
+  }
+  // 生成的随机id
+  string task_id = 1;
+
+  PendingTaskStatus status = 2;
+
+  // 创建时间
+  google.protobuf.Timestamp create_at = 3;
+
+  // 下载时指定的lpk url
+  string download_url = 4;
+
+  // DOWNLOAD状态时，lpk文件大小总字节, 部分url不支持探测大小
+  // IMAGE_PULLING状态时，docker_image大小总字节 (可能随着拉取层数的变动而突然增加)
+  optional uint64 total_size = 5;
+
+  // DOWNLOAD状态时，lpk文件已下载大小
+  // IMAGE_PULLING状态时，docker_image已拉取字节数(可能因为本地已经存在的层数而突然增加)
+  uint64 downloaded_size = 6;
+
+  // 下载时指定的sha256
+  optional string task_sha256 = 7;
+  // 下载lpk时指定的title
+  optional string task_title = 8;
+  // 下载lpk时指定的pkg_id
+  optional string task_pkg_id = 9;
+
+  // 进入INSTALL_OK状态时，此字段包含真实的pkg_id
+  optional string real_pkg_id = 10;
+
+  // 如果有异常则此字段包含错误内容
+  // 拉取镜像时可能会实际的进度信息
+  optional string detail = 11;
+}
+
+message QueryPendingTaskRequest {}
+message QueryPendingTaskResponse {
+  repeated PendingTaskInfo infos = 1;
+}
+
+message CancelPendingTaskRequest {
+  string task_id = 1;
+
+  //true=仅调整为暂停状态
+  bool only_pause = 2;
+}
+message CancelPendingTaskResponse {}
+
+message PrepareStop {}
+
+message StopProgress {
+  optional uint32 progress = 1;
+  optional string message = 2;
+  optional string error = 3;
+}

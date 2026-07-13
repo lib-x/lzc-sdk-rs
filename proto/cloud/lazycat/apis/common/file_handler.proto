@@ -1,0 +1,253 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service FileHandler {
+  rpc query(QueryRequest) returns (QueryReply) {}
+  rpc open(OpenRequest) returns (OpenReply) {}
+  rpc openFileManager(OpenFileManagerRequest) returns (google.protobuf.Empty) {}
+  // 列出目录结构
+  rpc walkDir(WalkDirRequest) returns (stream WalkDirReply) {}
+  rpc checkWalkDir(CheckWalkDirRequest) returns (CheckWalkDirResponse) {}
+  rpc walkDirDuplex(stream WalkDirRequest) returns (stream WalkDirReply) {}
+  rpc dirTree(DirTreeRequest) returns (DirTreeResponse) {}
+  rpc createDir(stream CreateDirRequest) returns (google.protobuf.Empty) {}
+  rpc stat(StatRequest) returns (StatReply) {}
+  // 同步文件夹, 让target_path的内容和device_path内容一致.  device_path = target_path
+  //  sync A→B 的話
+  //  B=A
+  rpc syncFolder(SyncFolderRequest) returns (stream TaskProgressInfo) {}
+  // 备份文件夹, 让server_path的内容和设备上的某个文件夹保持一致.
+  //    copy A→B 的話
+  //      B=A+B 原有檔案
+  rpc copyFolder(CopyFolderRequest) returns (stream TaskProgressInfo) {}
+  // 打包某个目录为Tar，流式地上传回来
+  rpc tarDir(TarDirRequest) returns (stream TarDirReply) {}
+  // 检查目录是否存在
+  rpc checkExists(CheckExistsMessage) returns (CheckExistsMessage) {}
+}
+
+message CheckExistsMessage {
+  repeated string paths = 1;
+}
+
+message DirTreeRequest {
+  // 目录路径
+  string path = 1;
+}
+message DirTreeResponse {
+  message FileInfo {
+    // 文件/目录路径
+    string path = 1;
+    // 大小
+    int64 size = 2;
+    // 最后修改时间
+    google.protobuf.Timestamp mtime = 3;
+    // 是否为目录
+    bool isDir = 4;
+  }
+  repeated FileInfo files = 1;
+}
+
+message TarDirRequest {
+  // 目录路径
+  string path = 1;
+}
+
+message TarDirReply {
+  bytes data = 1;
+}
+
+message WalkDirRequest {
+  // 目录路径
+  string path = 1;
+  // 过滤条件
+  optional string pattern = 2;
+  // 遍历深度，只支持0或1。0表示无限制递归，1表示仅返回一层文件夹
+  optional int32 depth = 4;
+}
+
+message CheckWalkDirRequest {
+  bytes diffInfo = 1;
+  string path = 2;
+  optional int32 depth = 3;
+}
+
+message CheckWalkDirResponse {
+  bool different = 1;
+  // 如果有不同，返回diffInfo信息
+  optional bytes diffInfo = 2;
+}
+
+message WalkDirReply {
+  // 全路径 /home/lnks/hello.txt
+  string path = 1;
+  // 文件名 hello.txt
+  string base = 2;
+  // 文件大小
+  int64 size = 3;
+  // 是否为目录
+  bool isDir = 4;
+  // 文件修改时间
+  google.protobuf.Timestamp mtime = 5;
+  // 给予服务端保存，代表本次walkdir结果的hash数据
+  // 服务端拿着diffInfo调用CheckWalkDir，判断是否需要真正的walk
+  optional bytes diffInfo = 6;
+  // 是否为软链接
+  bool isSymlink = 7;
+  // 软链接指向的原始文件路径
+  optional string symlinkDst = 8;
+}
+
+message CreateDirRequest {
+  string path = 1;
+}
+
+message OpenFileManagerRequest {
+  // 文件(夹)绝对路径
+  // 1. window 下面的必须以盘符开头，如 C:\Users\lnks\Desktop
+  // 2. unix   下面的必须以 / 开头，如 /home/lnks/Desktop
+  string path = 1;
+}
+
+enum IntentAction {
+  // 未知
+  UN_KNOWN = 0;
+  // 打开
+  OPEN = 1;
+  // 分享
+  SHARE = 2;
+}
+
+message OpenRequest {
+  // 应用id
+  string app_id = 1;
+  // 文件路径
+  string path = 2;
+
+  IntentAction intent_action = 3;
+
+  // 盒子名称
+  string box_name = 4;
+}
+
+message OpenReply {
+  // 打开应用的地址
+  optional string url = 1;
+}
+
+message QueryRequest {
+  // 文件mime类型
+  string mime = 1;
+  // 文件路径(可选 android下面使用path查询，体验更好 ）
+  optional string path = 2;
+  // 期望的 app icon 尺寸(宽高一致）
+  optional int32 icon_size = 3;
+}
+message QueryReply {
+  repeated AppShortcut app_list = 1;
+}
+
+message AppShortcut {
+  string app_id = 1;
+  string title = 2;
+  string icon = 3;
+  IntentAction intent_action = 4;
+}
+
+message StatRequest {
+  string path = 1;
+}
+
+// StatReply 和 golang fs.FileInfo 中字段保持一致
+message StatReply {
+  string name = 1;
+  int64 size = 2;
+  uint32 mode = 3;
+  google.protobuf.Timestamp modTime = 4;
+  bool isDir = 5;
+}
+
+// 同步文件夹请求
+message SyncFolderRequest {
+  string box_name = 1;
+  // 服务器地址
+  string webdav_addr = 2;
+  // 服务器用户名
+  string username = 3;
+  // 服务器密码
+  string password = 4;
+  // 设备文件夹路径
+  string device_path = 5;
+  string target_path = 6;
+}
+
+// 复制文件夹请求
+message CopyFolderRequest {
+  string box_name = 1;
+  // 服务器地址
+  string webdav_addr = 2;
+  // 服务器用户名
+  string username = 3;
+  // 服务器密码
+  string password = 4;
+  // 设备文件夹路径
+  string device_path = 5;
+  // 目标路径
+  string target_path = 6;
+}
+
+// 文件进度信息
+message FileProgress {
+  // 已经传输完成的文件体积
+  int64 bytes = 1;
+  // 文件名称
+  string name = 2;
+  // 进度
+  int32 percentage = 3;
+  // 文件体积
+  int64 size = 4;
+  // 文件传输速度
+  float speed = 5;
+  // 文件传输平均速度
+  float speed_avg = 6;
+}
+
+//  整体的进度信息
+message TaskProgressInfo {
+  // 当code = 1, 任务完成。其他为异常退出
+  int32 code = 1;
+  // 错误信息。
+  string msg = 2;
+  // 已经传输完的文件体积
+  int64 bytes = 3;
+  // 所有需要传输的文件体积;
+  int64 total_bytes = 4;
+  // 已经传输完成的文件数量;
+  int64 transfers = 5;
+  // 所有要传输的文件数量;
+  int64 total_transfers = 6;
+  // 已经检查过的文件数量;
+  int64 checks = 7;
+  // 所有要检查的文件数量;
+  int64 total_checks = 8;
+  //  已经删除的目录数量
+  int64 deleted_dirs = 9;
+  // 已经删除的文件数量
+  int64 deletes = 10;
+  // 当前任务消耗的时间
+  float elapsed_time = 11;
+  // eta 预计该任务传输完成的时间
+  int32 eta = 12;
+  // 重命名文件的数量
+  int32 renames = 13;
+  // 传输速度
+  float speed = 14;
+
+  repeated FileProgress transferring = 15;
+}

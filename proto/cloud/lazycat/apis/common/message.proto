@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+enum MsgType {
+  // 普通消息
+  NORMAL = 0;
+  // 用户安装应用权限被修改
+  USER_INSTALL_PERMISSION = 1;
+  // 用户可见权限被修改
+  USER_ALLOW_PERMISSION = 2;
+  // 安装了新应用
+  INSTALL_NEW_APP = 3;
+  // 新用户加入盒子
+  NEW_USER = 4;
+  // 盒子升级
+  BOX_UPGRADE = 5;
+  // 应用升级
+  APP_UPGRADE = 6;
+  // 用户没有受信任设备
+  USER_NO_TRUSTDEVICE = 7;
+}
+
+message Msg {
+  int64 id = 1;
+  MsgType message_type = 2;
+  string title = 3;
+  string content = 4;
+  string meta = 5;
+  int64 create_time = 6;
+  int64 read_time = 7;
+  string receiver = 8;
+}
+
+message ListMessagesResponse {
+  repeated Msg msgs = 1;
+}
+
+message MessageActionRequest {
+  int32 id = 1;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+}
+
+message DelMessageResponse {
+  bool success = 1;
+}
+
+message NewMessageResponse {
+  int64 id = 1;
+}
+
+message NewMessageRequest {
+  string receiver = 1;
+  MsgType message_type = 2;
+  string title = 3;
+  string content = 4;
+  string meta = 5;
+}
+
+message HandleNoTrustDeviceUserRequest {
+  enum Answer {
+    Accept = 0;
+    Reject = 1;
+  }
+  int32 id = 1;
+  Answer answer = 2;
+}
+
+service MessageService {
+  // 列出所有消息
+  rpc ListMessages(google.protobuf.Empty) returns (ListMessagesResponse) {}
+  // 列出所有已读消息
+  rpc ListReadMessages(google.protobuf.Empty) returns (ListMessagesResponse) {}
+  // 列出所有未读消息
+  rpc ListUnReadMessages(google.protobuf.Empty) returns (ListMessagesResponse) {}
+  // 根据消息ID查询某个消息，如果此前没有被Mark为已读，那么会变成已读
+  rpc QueryMessage(MessageActionRequest) returns (Msg) {}
+  // 设置指定消息为已读
+  rpc MarkAsRead(MessageActionRequest) returns (MarkAsReadResponse) {}
+  // 删除指定的消息
+  rpc DelMessage(MessageActionRequest) returns (DelMessageResponse) {}
+  // 新增一个消息
+  rpc NewMessage(NewMessageRequest) returns (NewMessageResponse) {}
+  // 流式的获取最新的消息
+  rpc LatestMessage(google.protobuf.Empty) returns (stream Msg) {}
+  // 处理普通用户没有受信任设备消息
+  rpc HandleNoTrustDeviceUser(HandleNoTrustDeviceUserRequest) returns (google.protobuf.Empty) {}
+}

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+// 目前主要是给系统应用使用，权限申请等最终需要在一个具体的客户端由用户交互确认
+
+service DialogManager {
+  rpc Question(QuestionRequest) returns (QuestionResult) {}
+  rpc MessageBox(MessageBoxRequest) returns (google.protobuf.Empty) {}
+  rpc Password(PasswordRequest) returns (PasswordResult) {}
+  rpc OpenFileSeletor(OpenFileSeletorRequest) returns (OpenFileSeletorResult) {}
+}
+
+message QuestionRequest {
+  string title = 1;
+  string text = 2;
+  bool defaultCancel = 3;
+}
+
+message QuestionResult {
+  bool yes = 1;
+}
+
+message MessageBoxRequest {
+  string title = 1;
+  string text = 2;
+}
+message PasswordRequest {
+  string title = 1;
+  string text = 2;
+}
+message PasswordResult {
+  string password = 1;
+  bool ok = 2;
+}
+
+message OpenFileSeletorRequest {
+  // 选择类型
+  SelectType type = 1;
+  // 是否多选（多选在SelectType 为Dir时无效）
+  bool isSingle = 2;
+  enum SelectType {
+    Dir = 0;
+    File = 1;
+  }
+  // 文件后缀过滤器
+  // 使用2种类型
+  // 第一种 jpb,png,mp3，指定文件的后缀名,使用,分割
+  // 支持的大类型有必须 image/* , 或者image/*,audio/*,video/*,document/*, 四种大类可以写在一起，也可以分开写,使用,分割。 如何该字段为空，则不过滤
+  string filter = 3;
+}
+
+message OpenFileSeletorResult {
+  // 文件或者目录的路径, 如果是文件就是文件的全路径 比如 /home/lnks/1.jpg ,如果是目录就是目录的全路径,并且末尾以/结尾, 比如/home/lnks/
+  repeated string path = 1;
+}

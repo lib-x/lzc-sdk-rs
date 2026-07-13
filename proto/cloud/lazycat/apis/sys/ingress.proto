@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+service AccessControlerService {
+  rpc SetAppAccessPolicy(AppAccessPolicyRequest) returns (google.protobuf.Empty);
+  rpc QueryAppAccessPolicy(AppAccessPolicyRequest) returns (AppAccessPolicy);
+
+  rpc GetAppLastAccessTime(IngressAppLastAccessTimeRequest) returns (IngressAppLastAccessTimeResponse) {}
+}
+
+service UserSessionService {
+  // 订阅用户登录登出事件
+  rpc SubscribeEvent(SubscribeEventRequest) returns (stream SubscribeEventResponse);
+}
+
+message AppAccessPolicyRequest {
+  string uid = 1; //若为空则从context中获取实际UID
+
+  AppAccessPolicy policy = 2;
+}
+
+message AppAccessPolicy {
+  // 是否允许访问所有应用。
+  // 此字段如果出现，则allow_access_apps字段会被忽略，即旧值不会有任何调整变化。
+  //
+  // 当目标用户有安装应用的权限时，无法设置no_limit=false。其他情况no_limit的值无任何限制。
+  optional bool no_limit = 1;
+
+  // 允许访问的appid列表
+  repeated string allow_access_appids = 2;
+}
+
+message IngressAppLastAccessTimeRequest {
+  string AppId = 1;
+}
+
+message IngressAppLastAccessTimeResponse {
+  int64 UnixTime = 1;
+}
+
+message SubscribeEventRequest {}
+message SubscribeEventResponse {}

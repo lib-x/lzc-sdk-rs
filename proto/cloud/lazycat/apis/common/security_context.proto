@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+enum Permission {
+  // 是否允许挂载用户文档数据
+  USER_DOCUMENT = 0;
+
+  // 是否允许安装软件
+  INSTALL_PACKAGE = 1;
+
+  // 是否允许挂载可移动存储设备
+  ACCESS_REMOVEABLE_STOREAGE = 2;
+
+  // 是否允许生成访问EndDevice的访问凭证, EndDevice会进行具体API的权限验证
+  ACCESS_ENDDEVICE = 1000;
+
+  ENDDEVICE_CLIPBOARD = 1001;
+  ENDDEVICE_NETWORK_INFO = 1002;
+  ENDDEVICE_PHOTOLIBRARY = 1003;
+}
+
+enum UserClass {
+  //可以没有用户(比如一个纯后端app)或任何有效用户
+  ANY_USER = 0;
+
+  //任何有效的用户
+  NORMAL_USER = 1;
+
+  //必须是管理员用户
+  ADMIN_USER = 2;
+
+  //请求者必须是资源所有者对应的用户，比如"设置密码"每个用户都有权设置，但仅能设置自身的
+  //具体的TARGET_USER通过input message中的target_uid_field option进行标记
+  TARGET_USER = 3;
+}
+
+enum SecurityContextMetaKey {
+  META_KEY_X_LZCAPI_APPID = 0;
+  META_KEY_X_LZCAPI_REALUID = 1;
+  META_KEY_X_LZCAPI_UID = 2;
+}
+
+// APIGateway在进行完权限检测放行后，转发给API Services时会通过metadata附带以下信息
+message SecurityContext {
+  // 请求来源的真实appid，一定是合法有效的
+  string appid = 1; //key=X_LZCAPI_APPID
+
+  // 请求来源的真实uid,一定是合法有效的
+  string real_uid = 2; //key=X_LZCAPI_REALUID
+
+  // 请求来源期望的uid，注意此值可以被app server篡改
+  // 若uid != real_uid且对应SecurityContextRequire.disable_behalf_of_uid == true
+  // 则此请求会被APIGATEWAY阻止转发
+  // 若app server没有篡改此值，则此值与real_uid相同
+  string uid = 3; //key=X_LZCAPI_UID
+}
+
+// 以下权限要求通过option的方式声明在proto文件内
+// 并由APIGateway进行验证
+message SecurityContextRequire {
+  repeated Permission require_permissions = 1;
+
+  UserClass require_user_class = 2;
+
+  // 请求必须直接通过app server发起，而非serverless端发起
+  bool require_from_backend = 3;
+
+  // 禁止app server伪造uid
+  bool disable_behalf_of_uid = 4;
+}
+
+extend google.protobuf.MethodOptions {
+  optional SecurityContextRequire scontext = 70000;
+}
+
+extend google.protobuf.MessageOptions {
+  optional int32 target_uid_field = 70001;
+}
+
+service PermissionManager {
+  rpc Request(PermissionDesc) returns (PermissionToken) {}
+  rpc Has(HasPermissionRequest) returns (PermissionStatus) {}
+}
+
+message PermissionDesc {
+  // 申请权限的原因说明
+  string reason = 1;
+
+  // 权限列表
+  repeated Permission permissions = 2;
+}
+
+// 后续调用lzc-apis时，需要带上此token
+message PermissionToken {
+  string token = 1;
+}
+
+message PermissionStatus {}
+
+message HasPermissionRequest {
+  Permission perm = 1;
+}

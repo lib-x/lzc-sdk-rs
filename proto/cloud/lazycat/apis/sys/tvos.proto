@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.sys;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/sys";
+
+message RunRequest {
+  string image = 1;
+  string timezone = 2;
+  string language = 3;
+}
+
+message StatusResponse {
+  bool ready = 1;
+}
+
+message IsHDMIConnectedResponse {
+  bool connected = 1;
+}
+
+message IsLoggedInResponse {
+  bool is_logged_in = 1;
+}
+
+message AddBookmarkRequest {
+  repeated Bookmark items = 1;
+}
+
+message ListBookmarkResponse {
+  repeated BookmarkWitoutIcon items = 1;
+}
+
+message DelBookmarkRequest {
+  repeated BookmarkWitoutIcon items = 1;
+}
+
+message ListBookmarkIconRequest {
+  repeated BookmarkWitoutIcon items = 1;
+}
+
+message ListBookmarkIconResponse {
+  repeated Bookmark items = 1;
+}
+
+message BookmarkWitoutIcon {
+  string url = 1;
+  string title = 2;
+}
+
+message Bookmark {
+  string url = 1;
+  string icon = 2;
+  string title = 3;
+}
+
+service TvOS {
+  // 启动
+  rpc Run(RunRequest) returns (google.protobuf.Empty) {}
+  // 状态
+  rpc Status(google.protobuf.Empty) returns (StatusResponse) {}
+  // 停止
+  rpc Stop(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 是否连接HDMI
+  rpc IsHDMIConnected(google.protobuf.Empty) returns (IsHDMIConnectedResponse) {}
+  // 是否已登录
+  rpc IsLoggedIn(google.protobuf.Empty) returns (IsLoggedInResponse) {}
+  // 添加书签
+  rpc AddBookmark(AddBookmarkRequest) returns (google.protobuf.Empty) {}
+  // 列出书签
+  rpc ListBookmark(google.protobuf.Empty) returns (ListBookmarkResponse) {}
+  // 删除书签
+  rpc DelBookmark(DelBookmarkRequest) returns (google.protobuf.Empty) {}
+  // 列出书签icon
+  rpc ListBookmarkIcon(ListBookmarkIconRequest) returns (ListBookmarkIconResponse) {}
+  // 踢出当前登录的客户端
+  // 清理hportal-client缓存目录并重启容器
+  rpc KickLoggedIn(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}

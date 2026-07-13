@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service APIGateway {
+  rpc QueryGatewayInfo(google.protobuf.Empty) returns (GatewayInfo) {}
+
+  rpc RegisterService(ServiceInfo) returns (RegisterReply) {}
+
+  // 访问http service前，需要申请auth信息以便Gateway可以识别来源对应的
+  // 真实appid。
+  // 返回值尽量交由浏览器前端设置xhr对应参数。如果确实无法做到(比如img src中)，则
+  // 可以通过https://$appdomain/$service_proxy/的形式由/usr/bin/lzcapp代为
+  // 转发。此前缀可以通过BrowserOnlyProxy.proto接口获取到。
+  rpc AccessHTTPService(AccessHTTPServiceRequest) returns (HTTPAccessInfo) {}
+}
+
+message GatewayInfo {
+  // 域名信息
+  string base_domain = 1;
+
+  // 服务端口
+  string port = 2;
+
+  // 是否使用TLS
+  bool is_tls = 3;
+}
+
+enum TransportType {
+  // 通用性最强，但会占用额外的端口并走完整的TCP/IP栈
+  TCP = 0;
+
+  // 仅限服务与Gateway同一进程内调用，数据直接走内存。性能最好，主要是device api类型使用。第三方服务无法使用此类型，仅限内部使用
+  // 特殊接口调用。
+  InProcess = 1;
+
+  // 走unix socket, 依旧是跨进程但不走TCP/IP协议栈。性能一般，不要求同一进程，但需要让gateway本身能访问到对应服务的socket文件
+  UnixSocket = 2;
+}
+
+enum ServiceType {
+  // 服务以grpc native的形式曝露给gateway。调用者拨号时直接使用gateway的地址即可，gateway会自动代理对应service name到正确的
+  // 服务后端。
+  GRPC = 0;
+
+  // 服务以http的形式曝露给gateway。 调用者以https的形式访问gateway的地址下的特定url path来访问对应服务后端。
+  // 服务会统一曝露到 `https://api.$boxdomain/s/$service_name/`
+  HTTP = 1;
+}
+
+message ServiceInfo {
+  ServiceType service_type = 1;
+  // 如果是盒子上的第三方服务，则会强制验证$service_name是否与调用者的$appid匹配
+  // 系统内置的服务以及device apis不会做此检查
+  string service_name = 2;
+
+  TransportType transport_type = 3;
+  string service_addr = 4;
+}
+
+message RegisterReply {
+  bool is_ok = 1;
+  string error_message = 2;
+
+  // gateway会对appid以及uid进行合法性检测，并在将request传递到service后端前，
+  // 设置到对应的grpc metadata或http header中，具体的字段名称会通过app_id_key以及user_id_key返回
+  string appid_key = 3;
+  string uid_key = 4;
+}
+
+message AccessHTTPServiceRequest {
+  string service_name = 1;
+}
+
+message HTTPAccessInfo {
+  // 对应服务的URL
+  string service_url = 1;
+
+  // 若token_headername不为空，
+  // 则必须设置名称为$token_headername的http header为$token_value
+  string auth_headername = 2;
+  string auth_value = 3;
+}

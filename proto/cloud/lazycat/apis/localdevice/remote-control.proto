@@ -1,0 +1,404 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+// /usr/include/linux/input-event-codes.h
+enum InputEvent {
+  KEY_HOME = 0;
+  KEY_BACK = 1;
+  KEY_F11 = 2;
+  KEY_MENU = 3;
+  KEY_UP = 4;
+  KEY_DOWN = 5;
+  KEY_LEFT = 6;
+  KEY_RIGHT = 7;
+  KEY_PAGEUP = 8;
+  KEY_PAGEDOWN = 9;
+  KEY_ENTER = 10;
+  KEY_BACKSPACE = 11;
+  KEY_F9 = 12;
+  KEY_HOMEPAGE = 13;
+  KEY_END = 14;
+  KEY_PAUSE = 15;
+  KEY_PLAY = 16;
+  KEY_FORWARD = 17;
+  KEY_ESC = 18;
+  KEY_F2 = 19;
+  KEY_F8 = 20;
+  KEY_ALT = 21;
+  KEY_W = 87;
+  KEY_V = 86;
+  KEY_C = 67;
+  KEY_CTRL = 29;
+}
+
+enum EventState {
+  PRESS = 0;
+  RELEASE = 1;
+}
+
+// uinput TouchPad interface
+enum TouchEvent {
+  MoveTo = 0;
+  LeftClick = 1;
+  RightClick = 2;
+  LeftPress = 3;
+  LeftRelease = 4;
+  RightPress = 5;
+  TouchDown = 6;
+  TouchUp = 7;
+}
+
+message SendKeyboardEventRequest {
+  InputEvent code = 1;
+  EventState state = 2;
+}
+
+message MovePosition {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+message SendTouchpadEventRequest {
+  TouchEvent event = 1;
+  optional MovePosition position = 2;
+}
+
+message SendTouchpadMoveRequest {
+  MovePosition position = 1;
+}
+
+message SendMouseMoveByDirectionRequest {
+  int32 pixel = 1;
+}
+
+message SendMouseMoveRequest {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+message SendMouseWheelRequest {
+  bool horizontal = 1;
+  float delta = 2;
+}
+
+message SetRemoteScreenRectRequest {
+  int32 height = 1;
+  int32 width = 2;
+}
+
+message WriteClipboardRequest {
+  string text = 1;
+}
+
+message ReadClipboardResponse {
+  string text = 1;
+}
+
+message PasteContent {
+  optional string text = 1;
+}
+
+message ListSinkInputsResponse {
+  message SinkInput {
+    int32 index = 1;
+    string name = 2;
+    int32 sink = 3;
+    bool muted = 4;
+    float volume = 5;
+  }
+  repeated SinkInput sinkInputs = 1;
+}
+
+message ListSinksRepsonse {
+  message Sink {
+    int32 index = 1;
+    string name = 2;
+    string description = 3;
+    bool muted = 4;
+    float volume = 5;
+    int32 cardIndex = 6;
+  }
+  repeated Sink sinks = 1;
+  Sink defualtSink = 2;
+}
+
+message CardProfile {
+  string name = 1;
+  string description = 2;
+  bool available = 3;
+  int32 priority = 4;
+  int32 sinks = 5;
+  int32 sources = 6;
+}
+
+message ListCardsResponse {
+  message Card {
+    int32 index = 1;
+    string name = 2;
+    string deviceName = 3;
+    CardProfile activeProfile = 4;
+    repeated CardProfile profiles = 5;
+  }
+  repeated Card cards = 1;
+}
+
+message SetDefaultSinkRequest {
+  int32 sinkIndex = 1;
+}
+
+message SetCardProfileRequest {
+  int32 cardIndex = 1;
+  string profileName = 2;
+}
+
+message SinkRequest {
+  optional string sinkName = 1;
+}
+
+message GetMuteResponse {
+  bool muted = 1;
+}
+
+message SetSinkMuteRequest {
+  optional string sinkName = 1;
+  bool mute = 2;
+}
+
+message GetSinkVolumeResponse {
+  float volume = 1;
+}
+
+message ChangeVolumeRequest {
+  float value = 1;
+}
+
+message SetVolumeRequest {
+  float volume = 1;
+}
+
+message BrowserActionRequest {
+  enum Action {
+    CLOSE_TAB = 0;
+    NEW_TAB = 1;
+    REFRESH_TAB = 2;
+    BACKWARD_HISTORY = 3;
+    FORWARD_HISTORY = 4;
+    SHOW_NUMBER_NAVIGATOR = 5;
+    HIDDEN_NUMBER_NAVIGATOR = 6;
+    CLEAR_INPUT = 7;
+    QUICK_OPEN = 8;
+  }
+  Action action = 1;
+}
+
+message BleDevice {
+  string address = 1;
+  string name = 2;
+  string icon = 3;
+  bool paired = 4;
+  bool connected = 5;
+  bool trusted = 6;
+  int32 rssi = 7;
+}
+
+message BleDeviceRequest {
+  string address = 1;
+}
+
+message BleScanDevicesResponse {
+  repeated BleDevice devices = 1;
+}
+
+message BleScanStatusResponse {
+  bool scanning = 1;
+}
+
+enum Layer {
+  // 恢复默认
+  NORMAL = 0;
+  // 黑色背景
+  BLACK = 1;
+  // 自定义背景
+  CUSTOM = 2;
+}
+
+message ScreenLayer {
+  Layer layer = 1;
+  // 如果screenlayer为custom需要传递这个参数
+  optional string custom_playload = 2;
+}
+
+message DebugTestReply {
+  google.protobuf.Timestamp time = 2;
+  string pulseaudio = 3;
+  string top = 4;
+}
+
+message GetBrowserURLResponse {
+  string url = 1;
+}
+
+message OcrActionClickRequest {
+  repeated string keywords = 1;
+}
+
+message OcrActionClickResponse {
+  bool successful = 1;
+}
+
+message AsrRecordTimeRequest {
+  bool isStart = 1;
+}
+
+message UseNumberNavigatorRequest {
+  string number = 1;
+}
+
+message UseNumberNavigatorResponse {
+  bool successful = 1;
+}
+
+message OpenAppResquest {
+  string appDomain = 1;
+}
+// MouseClickRequest, action: left, right, middle, double
+message MouseClickRequest {
+  string action = 1; // left, right, middle, double
+}
+// MouseClickStream, mouse and keyboard event stream
+message HIDRequest {
+  optional SendMouseWheelRequest mouseWheelRequest = 1;
+  optional SendMouseMoveRequest mouseMoveRequest = 2;
+  optional MouseClickRequest mouseClickRequest = 3;
+  optional SendKeyboardEventRequest keyboardRequest = 4;
+  optional PasteContent pasteContent = 5;
+  optional SendTouchpadEventRequest touchpadRequest = 6;
+  optional ChangeVolumeRequest changeVolumeRequest = 7;
+}
+
+service RemoteControl {
+  // 发送键盘输入事件
+  rpc SendKeyboardEvent(SendKeyboardEventRequest) returns (google.protobuf.Empty) {}
+  // 发送触摸板输入事件
+  // 此接口发送的事件都是源事件，比如发送LeftPress，只会发起按下，不会发起松开
+  // 如果是想要单击等操作使用其他接口
+  rpc SendTouchpadEvent(SendTouchpadEventRequest) returns (google.protobuf.Empty) {}
+  // 发送左键
+  rpc SendTouchpadClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发送右键
+  rpc SendTouchpadRightClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发送双击
+  rpc SendTouchpadDoubleClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发送触摸板滑动
+  rpc SendTouchpadMove(SendTouchpadMoveRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标向左移动
+  rpc SendMouseMoveLeft(SendMouseMoveByDirectionRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标向右移动
+  rpc SendMouseMoveRight(SendMouseMoveByDirectionRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标向上移动
+  rpc SendMouseMoveUp(SendMouseMoveByDirectionRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标向下移动
+  rpc SendMouseMove(SendMouseMoveRequest) returns (google.protobuf.Empty) {}
+  // 建立鼠标移动客户端流
+  rpc MouseMoveStream(stream SendMouseMoveRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标左键单击事件
+  rpc SendMouseLeftClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发起鼠标右键单击事件
+  rpc SendMouseRightClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发起鼠标中键单击事件
+  rpc SendMouseMiddleClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 发起鼠标滚动
+  rpc SendMouseWheel(SendMouseWheelRequest) returns (google.protobuf.Empty) {}
+  // 建立流式鼠标滑动
+  rpc MouseWheelStream(stream SendMouseWheelRequest) returns (google.protobuf.Empty) {}
+  // 发起鼠标双击左键事件
+  rpc SendMouseDoubleClick(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 设置远程屏幕的宽高(用于计算鼠标，触控板移动的同比例偏移)
+  rpc SetRemoteScreenRect(SetRemoteScreenRectRequest) returns (google.protobuf.Empty) {}
+  // 写入剪贴板
+  rpc WriteClipboard(WriteClipboardRequest) returns (google.protobuf.Empty) {}
+  // 读取剪贴板
+  rpc ReadClipboard(google.protobuf.Empty) returns (ReadClipboardResponse) {}
+  // 粘贴
+  rpc DoPaste(PasteContent) returns (google.protobuf.Empty) {}
+  // 浏览器操作
+  rpc BrowserAction(BrowserActionRequest) returns (google.protobuf.Empty) {}
+  // 音频管理
+  // sink 输入音频设备 (可用于播放音频的音频设备)
+  // sink-input 输入音频流 (正在播放音频的程序)
+  // card 声卡，对应到某个物理设备
+  // card profile 声音可用的配置(立体声、环绕声)，影响sink和source
+  // 列出正在播放的输出音频流
+  rpc ListSinkInputs(google.protobuf.Empty) returns (ListSinkInputsResponse) {}
+  // 列出当前输入音频设备
+  rpc ListSinks(google.protobuf.Empty) returns (ListSinksRepsonse) {}
+  // 列出当前可用的声卡
+  rpc ListCards(google.protobuf.Empty) returns (ListCardsResponse) {}
+  // 设置默认的输出音频设备
+  rpc SetDefaultSink(SetDefaultSinkRequest) returns (google.protobuf.Empty) {}
+  // 设置默认的输入音频设备
+  rpc SetCardProfile(SetCardProfileRequest) returns (google.protobuf.Empty) {}
+  // 自动初始化音频输出选择，供智慧屏launcher界面使用
+  rpc AutoInitAudio(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 获取是否被静音
+  rpc GetMute(google.protobuf.Empty) returns (GetMuteResponse) {}
+  // 切换静音状态
+  rpc ToggleMute(google.protobuf.Empty) returns (GetMuteResponse) {}
+  // 获取音量
+  rpc GetVolume(SinkRequest) returns (GetSinkVolumeResponse) {}
+  // 增加音量
+  rpc IncreaseVolume(ChangeVolumeRequest) returns (google.protobuf.Empty) {}
+  // 减少音量
+  rpc DecreaseVolume(ChangeVolumeRequest) returns (google.protobuf.Empty) {}
+  // 设置默认音频输入源音量
+  rpc SetVolume(SetVolumeRequest) returns (google.protobuf.Empty) {}
+  // 蓝牙管理
+  // 停止扫描蓝牙设备
+  rpc BleStopScan(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 开始扫描蓝牙设备
+  rpc BleStartScan(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 蓝牙设备扫描状态
+  rpc BleScanStatus(google.protobuf.Empty) returns (BleScanStatusResponse) {}
+  // 流式获取扫描蓝牙设备结果
+  rpc BleScanDevices(google.protobuf.Empty) returns (stream BleScanDevicesResponse) {}
+  // 连接蓝牙设备
+  rpc BleConnectDevice(BleDeviceRequest) returns (google.protobuf.Empty) {}
+  // 断开所有连接
+  rpc BleDisconnectDevice(BleDeviceRequest) returns (google.protobuf.Empty) {}
+  // 删除蓝牙设备
+  rpc BleRemoveDevice(BleDeviceRequest) returns (google.protobuf.Empty) {}
+  // 刷新蓝牙设备列表
+  rpc BleRefreshDevices(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 切换ScreenLayer
+  rpc SetScreenLayer(ScreenLayer) returns (google.protobuf.Empty) {}
+  // 返回当前的ScreenLayer
+  rpc GetScreenLayer(google.protobuf.Empty) returns (ScreenLayer) {}
+  // 登出
+  rpc Logout(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 调试测试
+  rpc DebugTest(google.protobuf.Empty) returns (stream DebugTestReply) {}
+  // 获取浏览器当前url
+  rpc GetBrowserURL(google.protobuf.Empty) returns (GetBrowserURLResponse) {}
+  // Ocr点击操作
+  rpc OcrActionClick(OcrActionClickRequest) returns (OcrActionClickResponse) {}
+  // Ocr进行扫描
+  rpc OcrDoScan(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // Asr耗时记录
+  rpc AsrRecordTime(AsrRecordTimeRequest) returns (google.protobuf.Empty) {}
+  // 重置显示画面
+  rpc ResetDisplay(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  // 选择某个数字导航点击
+  rpc UseNumberNavigator(UseNumberNavigatorRequest) returns (UseNumberNavigatorResponse) {}
+  // 打开某个app
+  rpc OpenApp(OpenAppResquest) returns (google.protobuf.Empty) {}
+  // 建立流式HID事件
+  rpc HIDStream(stream HIDRequest) returns (google.protobuf.Empty) {}
+  // 获取文本输入框内容
+  rpc GetText(google.protobuf.Empty) returns (ReadClipboardResponse) {}
+}

@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service LocalLaunchService {
+  // 创建快捷方式
+  rpc PinApp(PinAppRequest) returns (PinAppReply) {}
+  // 删除快捷方式
+  rpc UnPinApp(UnPinAppRequest) returns (UnPinAppReply) {}
+
+  // 打开指定的懒猫云应用
+  rpc OpenApp(OpenAppRequest) returns (OpenAppReply) {}
+
+  // 使用不安全模式打开指定APP
+  // App页面由两个webview组成：一个control-view,一个content-view
+  // 其中app渲染在control-view中，content-view的内容由App代码控制
+  rpc OpenUnsafeApp(OpenUnsafeAppRequest) returns (OpenAppReply) {}
+
+  // 当前设备支持的应用打开方式
+  rpc OpenAppMethod(OpenAppMethodRequest) returns (OpenAppMethodReply) {}
+}
+
+message PinAppRequest {
+  string url = 1;
+  string appName = 2;
+  // icon地址允许是http类型或者base64类型,如果为空将尝试获取网站的favicon.ico
+  string iconUrl = 3;
+}
+
+message PinAppReply {}
+
+message UnPinAppRequest {
+  string url = 1;
+}
+
+message UnPinAppReply {}
+
+message OpenAppRequest {
+  string url = 1;
+  bool isFullScreen = 2;
+  string appid = 3;
+  string version = 4;
+  string title = 5;
+  string icon = 6;
+  // 当已经存在当前地址的窗口的时候，是否要求使用该地址强制打开。
+  // 使用场景，比如播放器存在已经存在，这个时候需要使用过新的链接打开，然后覆盖上一次的播放界面，然后指定forceOpen=true即可.
+  bool forceOpen = 7;
+}
+
+message OpenAppReply {}
+
+message OpenUnsafeAppRequest {
+  // control-view的地址
+  string url = 1;
+
+  enum Position {
+    Left = 0;
+    Right = 1;
+    Top = 2;
+    Bottom = 3;
+  }
+  // control-view的位置
+  Position position = 2;
+
+  // control-view的高度(当control-view 在左右的时候表示宽度， 上下表示高度）
+  string height = 3; // 10%; 50px;
+
+  // 所有的功能都通过 window.lzc_control_api对象注入. (后面以$API代指)
+  enum Feature {
+    InjectJS = 0; //$API.InjectContentJS(jscontent,callback)  content-view 执行的jscontent, 如果有结果，会将结果通过callback(result:Boolean): 通知给control-view
+    ReadCookie = 1; //$API.ReadCookie(domain) -> string  读取content-view cookie
+  }
+  /*
+     除了以上特性外，control-view具备以下默认的接口
+     1. $API.SetContentURL(url,callback) content-view 打开指定url地址，调用callback(result: Boolean) 的方法通知control-view
+     2. $API.GetContentURL(callback) ->  callback： 获取content-view当前的地址,调用 callback(url:String)通知control-view
+     3. $API.BackContentView(callback) ->  callback: content-view的历史记录回退, 返回false表示无法进行,将调用callback(result:Boolean) 回调通知
+     4. $API.ForwardContentView(callback) ->callback: content-view的历史记录前进, 返回false表示无法进行,(result:Boolean)回调通知control-view
+     5. $API.NotifyControView(jscontent) -> void : control-view将执行jscontent内容，用来通知control-view, 该接口用于content-view 通知control-view
+  */
+  /*
+     此外control-view会接收以下特殊事件, 所有事件均统一以post-message形式发送， msg格式为`{ type: string, msg: string }`
+     control-view需要自行调用addEventListener('message'), 并过滤type==lzc_control_api类型的message.
+
+     1. OnURLChange(new_url)
+     2. OnNewLinkClick(url)
+     3. OnDownloadLinkRequest(url)
+     4. OnNewResourceLink(url) 将所有的content-view请求的url通知给control-view
+     5. OnContentMessage(msg string) //在content-view中调用post-message发送的任何消息
+  */
+  repeated Feature features = 4;
+}
+
+message OpenAppMethodRequest {}
+
+message OpenAppMethodReply {
+  enum Mode {
+    All = 0;
+    AllNot = 1;
+    Browser = 2;
+    Client = 3;
+  }
+
+  Mode support = 1; // 当前设备支持的应用打开方式
+}

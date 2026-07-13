@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service BoxService {
+  rpc QueryInfo(google.protobuf.Empty) returns (BoxInfo) {}
+
+  rpc ChangeDisplayName(ChangeDisplayNameRequest) returns (google.protobuf.Empty) {}
+
+  rpc ChangePowerLed(ChangePowerLedRequest) returns (google.protobuf.Empty) {}
+
+  rpc ChangeTimeZone(ChangeTimeZoneRequest) returns (google.protobuf.Empty) {}
+
+  rpc GetTimeZone(google.protobuf.Empty) returns (GetTimeZoneResponse) {}
+
+  rpc SetBootOption(BootOption) returns (google.protobuf.Empty) {}
+
+  rpc Shutdown(ShutdownRequest) returns (google.protobuf.Empty) {}
+}
+
+message BoxInfo {
+  // 硬件唯一ID,出厂后则不再变化
+  string udid = 1;
+
+  // 盒子的唯一名称，此名称是向中心化服务器注册产生，创建后不可修改
+  string box_name = 2;
+
+  // 盒子的唯一域名
+  string box_domain = 3;
+
+  // 盒子内部显示名称，可以随意修改，若不设置则为box_name
+  string display_name = 4;
+
+  // 电源灯是否亮
+  bool power_led = 7;
+
+  reserved 5, 6, 8;
+
+  // 以下是一堆硬件信息。硬盘信息请用另一个接口
+
+  string cpu_name = 9;
+  int64 cpu_cores = 10;
+  int64 cpu_threads = 11;
+  float cpu_usage = 19;
+  string memory_vendor = 12;
+  int64 memory_total = 13;
+  int64 memory_free = 14;
+  string memory_type = 20;
+  int64 memory_speed = 15;
+  int64 fan_rpm = 16;
+  int64 data_mountpoint_total = 17;
+  int64 data_mountpoint_used = 18;
+  uint64 disks_read_bytes = 21;
+  uint64 disks_write_bytes = 22;
+  FanInfoResponse fan_info = 23;
+}
+
+enum FanType {
+  CPU_FAN = 0;
+  MEM_FAN = 1;
+}
+
+message FanStatus {
+  FanType type = 1;
+  // current speed in rotate per min(RPM)
+  uint32 current_rpm = 2;
+
+  uint32 min_rpm = 3;
+  uint32 max_rpm = 4;
+  // pwm info
+  bool pwm_enabled = 5;
+  uint32 pwm_freq = 6;
+  uint32 current_pwm = 7;
+}
+
+message FanInfoResponse {
+  repeated FanStatus status = 1;
+  // installed fans
+  int32 fans_installed = 2;
+}
+
+message ChangeDisplayNameRequest {
+  string display_name = 1;
+}
+
+message ChangePowerLedRequest {
+  bool power_led = 1;
+}
+
+message ChangeTimeZoneRequest {
+  string time_zone = 1;
+}
+
+message GetTimeZoneResponse {
+  string time_zone = 1;
+}
+
+message ShutdownRequest {
+  enum Action {
+    // 关机
+    Poweroff = 0;
+
+    // 重启
+    Reboot = 1;
+
+    // 软重启（仅重启 lzc-os 容器，不关闭 lzc-base-os）
+    //    通常用于系统更新、故障修复等场景
+    SoftReboot = 2;
+  }
+
+  Action action = 1;
+}
+
+message BootOption {
+  enum BootOptionType {
+    // 无操作（清空所有已设置的操作）
+    BOOT_OPTION_NONE = 0;
+
+    // 回滚到上一个版本
+    BOOT_OPTION_ROLLBACK = 1;
+
+    // 重置系统（清空系统的 var 数据）
+    BOOT_OPTION_RESET = 2;
+
+    // 恢复出厂设置（清空用户信息、系统的 var 数据和用户数据）
+    BOOT_OPTION_FACTORY_RESET = 3;
+  }
+  BootOptionType type = 1;
+}

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service DeviceService {
+  rpc Query(google.protobuf.Empty) returns (DeviceInfo) {}
+  rpc QueryServiceStatus(QueryServiceStatusRequest) returns (QueryServiceStatusReply) {}
+}
+
+message DeviceInfo {
+  string OS = 1;
+  string CPU = 2;
+  string name = 3;
+  string documentRootDir = 4;
+  // 用于扫码或辅助登录标记操作端
+  optional string identityProvider = 5;
+}
+
+message QueryServiceStatusRequest {
+  repeated string service_name = 1;
+}
+
+message QueryServiceStatusReply {
+  map<string, LocalServiceStatus> services = 1;
+}
+
+message LocalServiceStatus {
+  LocalServiceState state = 1;
+  string reason = 2;
+}
+
+enum LocalServiceState {
+  LOCAL_SERVICE_STATE_UNKNOWN = 0;
+  LOCAL_SERVICE_STATE_AVAILABLE = 1;
+  LOCAL_SERVICE_STATE_UNAVAILABLE = 2;
+}

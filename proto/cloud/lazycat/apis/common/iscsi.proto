@@ -1,0 +1,238 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service ISCSIService {
+  // Discover targets and add targets to node database if targets exist
+  rpc DiscoverTargets(DiscoverTargetsRequest) returns (DiscoverTargetsResponse) {}
+  // Set auth option for added node
+  rpc SetNodeAuth(SetAuthRequest) returns (CommonResponse) {}
+  // CreateOrUpdateNode creates new or update existing iSCSI node in iscsid dm
+  rpc CreateOrUpdateNode(CreateOrUpdateNodeRequest) returns (CommonResponse) {}
+  // GetNodes will query information about nodes
+  rpc GetNodes(google.protobuf.Empty) returns (GetNodesResponse) {}
+  // GetSessions will query information about sessions
+  rpc GetSession(google.protobuf.Empty) returns (GetSessionResponse) {}
+  // DeleteNode delete iSCSI node from iscsid database
+  rpc DeleteNode(NodeOperationRequest) returns (CommonResponse) {}
+  // Log into a specified target
+  rpc PerformLogin(NodeOperationRequest) returns (CommonResponse) {}
+  // Log out of a specified target
+  rpc PerformLogout(NodeOperationRequest) returns (CommonResponse) {}
+  // Rescan current iSCSI sessions
+  rpc PerformRescan(google.protobuf.Empty) returns (CommonResponse) {}
+  // GetInitiators response local default initiators
+  rpc GetInitiators(google.protobuf.Empty) returns (GetInitiatorsResponse) {}
+}
+
+enum ISCSIErrorCode {
+  // command executed successfully.
+  ISCSI_SUCCESS = 0;
+  // generic error code.
+  ISCSI_ERR = 1;
+  // session could not be found.
+  ISCSI_ERR_SESS_NOT_FOUND = 2;
+  // could not allocate resource for operation.
+  ISCSI_ERR_NOMEM = 3;
+  // connect problem caused operation to fail.
+  ISCSI_ERR_TRANS = 4;
+  // generic iSCSI login failure.
+  ISCSI_ERR_LOGIN = 5;
+  // error accessing/managing iSCSI DB.
+  ISCSI_ERR_IDBM = 6;
+  // invalid argument.
+  ISCSI_ERR_INVAL = 7;
+  // connection timer expired while trying to connect.
+  ISCSI_ERR_TRANS_TIMEOUT = 8;
+  // generic internal iscsid/kernel failure.
+  ISCSI_ERR_INTERNAL = 9;
+  // iSCSI logout failed.
+  ISCSI_ERR_LOGOUT = 10;
+  // iSCSI PDU timed out.
+  ISCSI_ERR_PDU_TIMEOUT = 11;
+  // iSCSI transport module not loaded in kernel or iscsid.
+  ISCSI_ERR_TRANS_NOT_FOUND = 12;
+  // did not have proper OS permissions to access iscsid or execute iscsiadm command.
+  ISCSI_ERR_ACCESS = 13;
+  // transport module did not support operation.
+  ISCSI_ERR_TRANS_CAPS = 14;
+  // session is logged in.
+  ISCSI_ERR_SESS_EXISTS = 15;
+  // invalid IPC MGMT request.
+  ISCSI_ERR_INVALID_MGMT_REQ = 16;
+  // iSNS service is not supported.
+  ISCSI_ERR_ISNS_UNAVAILABLE = 17;
+  // a read/write to iscsid failed.
+  ISCSI_ERR_ISCSID_COMM_ERR = 18;
+  // fatal iSCSI login error.
+  ISCSI_ERR_FATAL_LOGIN = 19;
+  // could not connect to iscsid.
+  ISCSI_ERR_ISCSID_NOTCONN = 20;
+  // no records/targets/sessions/portals found to execute operation on.
+  ISCSI_ERR_NO_OBJS_FOUND = 21;
+  // could not lookup object in sysfs.
+  ISCSI_ERR_SYSFS_LOOKUP = 22;
+  // could not lookup host.
+  ISCSI_ERR_HOST_NOT_FOUND = 23;
+  // login failed due to authorization failure.
+  ISCSI_ERR_LOGIN_AUTH_FAILED = 24;
+  // iSNS query failure.
+  ISCSI_ERR_ISNS_QUERY = 25;
+  // iSNS registration/deregistration failed.
+  ISCSI_ERR_ISNS_REG_FAILED = 26;
+  // operation not support.
+  ISCSI_ERR_OP_NOT_SUPP = 27;
+  // device or resource in use.
+  ISCSI_ERR_BUSY = 28;
+  // operation failed, but retrying later may succeed.
+  ISCSI_ERR_AGAIN = 29;
+  // unknown discovery type.
+  ISCSI_ERR_UNKNOWN_DISCOVERY_TYPE = 30;
+  // child process terminated.
+  ISCSI_ERR_CHILD_TERMINATED = 31;
+  // session likely not connected.
+  ISCSI_ERR_SESSION_NOT_CONNECTED = 32;
+  // iscsi initiator manager error. (should return raw message)
+  ISCSI_MANAGER_ERR = 1001;
+  // failed to lookup portal address
+  ISCSI_MANAGER_ADDRESS_LOOKUP = 1002;
+  // invalid IQN format
+  ISCSI_MANAGER_IQN_INVALID = 1003;
+}
+
+message ISCSITarget {
+  string portal = 1;
+  string group_tag = 2;
+  string target = 3;
+}
+
+enum ISCSIAuthType {
+  None = 0;
+  CHAP = 1;
+  MutualCHAP = 2;
+}
+
+message ISCSICHAPAuth {
+  string username = 1;
+  string password = 2;
+  string username_in = 3;
+  string password_in = 4;
+}
+
+message DiscoverTargetsRequest {
+  // ip:port
+  string address = 1;
+  ISCSIAuthType auth_type = 2;
+  // denpends on auth_type
+  ISCSICHAPAuth auth = 3;
+  // automatic login at startup
+  bool startup = 4;
+  // login to discovered targets
+  bool login = 5;
+}
+
+message DiscoverTargetsResponse {
+  repeated ISCSITarget targets = 1;
+  ISCSIErrorCode code = 2;
+  string raw_message = 3;
+}
+
+message SetAuthRequest {
+  ISCSITarget target = 1;
+  ISCSIAuthType auth_type = 2;
+  ISCSICHAPAuth auth = 3;
+}
+
+message NodeOptions {
+  string name = 1;
+  string value = 2;
+}
+
+message ISCSINode {
+  ISCSITarget target = 1;
+  repeated NodeOptions fields = 2;
+}
+
+message CreateOrUpdateNodeRequest {
+  ISCSITarget target = 1;
+  repeated NodeOptions options = 2;
+  // automatic login at startup
+  bool startup = 3;
+}
+
+message GetNodesResponse {
+  repeated ISCSINode nodes = 1;
+  ISCSIErrorCode code = 2;
+  string raw_message = 3;
+}
+
+enum ISCSITransportName {
+  ISCSI_TRANSPORT_TCP = 0;
+  ISCSI_TRANSPORT_ISER = 1;
+}
+
+enum ISCSISessionState {
+  ISCSI_SESSION_LOGGED_IN = 0;
+  ISCSI_SESSION_FAILED = 1;
+  ISCSI_SESSION_FREE = 2;
+}
+
+enum ISCSISessionTargetState {
+  ISCSI_SESSION_TARGET_UNBOUND = 0;
+  ISCSI_SESSION_TARGET_ALLOCATED = 1;
+  ISCSI_SESSION_TARGET_SCANNED = 2;
+  ISCSI_SESSION_TARGET_UNBINDING = 3;
+  ISCSI_SESSION_TARGET_MAX = 4;
+}
+
+enum ISCSIConnectionState {
+  ISCSI_CONN_UP = 0;
+  ISCSI_CONN_DOWN = 1;
+  ISCSI_CONN_FAILED = 2;
+  ISCSI_CONN_BOUND = 3;
+}
+
+message ISCSILunInfo {
+  string dev_path = 1;
+  uint64 size = 2;
+  bool read_only = 3;
+  optional string vendor = 4;
+  optional string model = 5;
+}
+
+message ISCSISession {
+  ISCSITarget target = 1;
+  string sid = 2;
+  string iface_initiatorname = 3;
+  string iface_ipaddress = 4;
+  int32 iface_port = 5;
+  ISCSISessionState session_state = 6;
+  ISCSIConnectionState connection_state = 7;
+  ISCSISessionTargetState target_state = 8;
+  int32 luns_count = 9; // to check if there is disk exist or multiple disk exist
+  repeated ISCSILunInfo lun_info = 10;
+  optional string json_info = 11;
+}
+
+message GetSessionResponse {
+  repeated ISCSISession sessions = 1;
+  ISCSIErrorCode code = 2;
+  string raw_message = 3;
+}
+
+message NodeOperationRequest {
+  ISCSITarget target = 1;
+}
+
+message CommonResponse {
+  ISCSIErrorCode code = 1;
+  string raw_message = 2;
+}
+
+message GetInitiatorsResponse {
+  repeated string initiators = 1;
+}

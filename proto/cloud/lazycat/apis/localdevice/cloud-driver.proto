@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+service CloudDriver {
+  rpc EnableAutoMount(EnableAutoMountRequest) returns (EnableAutoMountReply) {}
+  rpc IsEnableAutoMount(IsEnableAutoMountRequest) returns (IsEnableAutoMountReply) {}
+  rpc OpenFile(OpenFileRequest) returns (OpenFileReply) {}
+}
+
+message OpenFileRequest {
+  string boxName = 1;
+  string filePath = 2;
+}
+
+message OpenFileReply {}
+
+message EnableAutoMountRequest {
+  string boxName = 1;
+}
+
+message EnableAutoMountReply {}
+
+message IsEnableAutoMountRequest {
+  string boxName = 1;
+}
+
+message IsEnableAutoMountReply {
+  bool enable = 1;
+}

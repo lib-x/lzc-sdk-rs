@@ -1,0 +1,266 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+// 照片同步     box ---> download from hclient
+// 照片下载     box ---> push     to   hclient
+// (目前是调用的PhotoLibaray.PutPhoto接口)
+
+// 文件上传     box ---> download from hclient
+// 文件下载     box ---> push     to   hclient
+
+// 隔空投送     hclient1 -----> hclient2 (依旧由box控制)
+
+// 1. 所有操作一定是由某个box上的lzcapp发起.
+// (后面增加验证流程时，都需要从盒子授权开始)
+// 2. hclient尽量只实现少量的无状态Put接口(图片使用PutPhoto, 文件直接使用webdav)
+// 3. 控制、进度均有box端维护
+
+// 功能需求
+// 1. 队列管理, add, remove, paused, start, config(download rate、n concurrent)
+// 2. 每个任务可以显示状态: ready、transmitting、paused、complete、failed
+
+// 其他需求
+// 1.
+// 简化API使用，单独上传一个文件时自动创建队列。一个队列内可以添加N个文件，并可以配置并发等
+// 2. 需要考虑大文件的场景，比如10G的文件。
+// 3. 文件因存放在临时目录，完成后再移动
+
+message FileLocation {
+  enum FileLocationType {
+    Url = 0;
+    Local = 2;
+  }
+  FileLocationType location_type = 1;
+  string value = 2;
+}
+
+/*
+ * Task设计
+ */
+
+// Task 所有状态
+enum TaskStatus {
+  Pending = 0; // 等待下载
+  Transmitting = 1; // 正在下载
+  Paused = 2; // 暂停
+  Finished = 3; // 已完成
+  Failed = 4; // 下载失败
+  Removed = 5; // 被移除状态，这个状态不会写入数据库，只有单个任务被删除的时候会出现
+  All = 6; // 表示前五种状态的合集，只在完成status参数为空(或者正好是前五个状态）时的 ClearQueue 时出现
+}
+
+// TODO 考虑空文件夹
+message MetaInfo {
+  string meta_info = 1;
+}
+// Task创建请求
+message TaskCreateRequest {
+  // src任意http url
+  // https://7e-febf-6026-f14a-a3ec-0.d.heiyu.space:4443/s/files/home/abc.mp4
+  FileLocation src = 1;
+
+  // app的files相对路径或具备PUT的webdav地址
+  // /home/abc.mp4 or
+  // https://apis.snyht4.heiyu.space/s/files/home/video/abc.mp4
+  FileLocation dst = 2;
+
+  // abc.mp4
+  string name = 3;
+
+  //若queue 需提前创建，（固定前缀id）
+  TaskQueueID queue_id = 4;
+
+  optional TaskStatus status = 5;
+  optional MetaInfo meta_info = 6;
+  optional string uid = 7; // 给相册后端用的, 用来告知transfer, 请求者的uid。这两个uid在用户下载被分享的相册的图片时有用。
+  optional string uid_src = 8; // 给相册后端用的, 用来告知transfer, src(一定为本地路径，且为相对路径)的所属uid。
+}
+message TaskCreateRequests {
+  repeated TaskCreateRequest Requests = 1;
+}
+
+// Task结构体
+message TaskID {
+  string id = 1;
+}
+message TransmitInfo {
+  // 总大小， 单位为 Byte
+  int64 total = 1;
+  // 已传输大小， 单位为 Byte
+  int64 transmitted = 2;
+  // 当前速度， 单位为 Byte/s
+  int64 speed = 3;
+}
+
+message Task {
+  TaskID id = 1;
+  FileLocation src = 2;
+  FileLocation dst = 3;
+  string file_name = 4;
+  string mime_type = 5;
+  TaskStatus status = 6;
+  optional int64 size = 7; // 前端请求可以没有大小，返回需要有
+  optional TransmitInfo info = 8;
+  optional google.protobuf.Timestamp created_at = 9;
+  optional google.protobuf.Timestamp updated_at = 10;
+  optional MetaInfo meta_info = 11;
+}
+
+/*
+ * 任务队列TaskQueue设计
+ */
+message TaskQueueConfig {
+  int64 max_parallel = 1;
+  int64 max_rate_per_file = 2;
+  int64 max_rate = 3;
+}
+message TaskQueueID {
+  string id = 1;
+  optional string uid = 2;
+}
+message TaskQueueConfigReq {
+  TaskQueueID id = 1;
+  TaskQueueConfig config = 2;
+}
+
+enum QueueStatus {
+  Running = 0; // 等待下载
+  Suspend = 1; // 已完成
+}
+// TODO 考虑暂停状态问题
+message TaskQueue {
+  TaskQueueID id = 1;
+  QueueStatus status = 2;
+  repeated Task tasks = 3;
+}
+message FileTaskQueueResp {
+  TaskQueueID id = 1;
+  QueueStatus status = 2;
+  repeated Task tasks = 3;
+}
+
+enum Order {
+  ASC = 0;
+  DESC = 1;
+}
+message TaskQueueQueryReq {
+  TaskQueueID id = 1;
+  repeated TaskStatus status = 2;
+  optional Order order = 3;
+}
+
+message TaskQueueStatisticsReq {
+  repeated TaskQueueID id = 1;
+}
+message TaskQueueStatistics {
+  int64 pending = 1; // 等待下载
+  int64 transmitting = 2; // 正在下载
+  int64 paused = 3; // 暂停
+  int64 finished = 4; // 已完成
+  int64 failed = 5; // 下载失败
+}
+message TaskQueueStatisticsResp {
+  repeated TaskQueueStatistics statistics = 1;
+}
+enum MsgAction {
+  Add = 0;
+  Update = 2;
+  Cancel = 3;
+  UpdateAll = 4;
+  CancelAll = 5;
+  StartAll = 6;
+  PauseAll = 7;
+  NoAction = 100;
+}
+message QueueMessageResp {
+  TaskID id = 1;
+  Task task = 2;
+  MsgAction action = 3;
+  TaskStatus status = 4;
+  optional string error_message = 5;
+}
+
+message MiniMessageResp {
+  TaskID id = 1;
+  MsgAction action = 2;
+  TaskStatus status = 3;
+  TransmitInfo info = 4;
+  optional Task task = 5;
+  optional string error_message = 6;
+}
+
+message TaskQueueListResp {
+  repeated TaskQueueID ids = 1;
+}
+
+// 上传文件夹的时候，src是http，dst是网盘中的相对路径。
+// 下载文件夹的时候，src是网盘中的相对路径，dst是http。
+message TaskFolderReq {
+  TaskQueueID id = 1;
+  string src = 2;
+  string dst = 3;
+}
+
+// hclient与hserver均实现此service
+// service FilePutService {}
+
+service FileTransferService {
+  /* Task status */
+
+  // 创建队列
+  rpc CreateQueue(TaskQueueID) returns (FileTaskQueueResp) {}
+  // 根据 ID 删除队列
+  // rpc DeleteQueue(TaskQueueID) returns (google.protobuf.Empty) {}
+
+  // 列出所有 QueueID
+  rpc ListQueue(google.protobuf.Empty) returns (TaskQueueListResp) {}
+  // 通过队列的 ID 和 Status 获取任务列表
+  rpc QueryQueue(TaskQueueQueryReq) returns (stream Task) {}
+  // 通过队列的 ID 和 Status 获取任务状态，即running/paused等各个状态中各有多少个任务
+  rpc QueryQueueStatistics(TaskQueueStatisticsReq) returns (TaskQueueStatisticsResp) {}
+  rpc QueryQueueStatistic(TaskQueueID) returns (stream TaskQueueStatistics) {}
+
+  // 通过队列的 ID 和 Status 清除任务
+  rpc ClearQueue(TaskQueueQueryReq) returns (google.protobuf.Empty) {}
+
+  // 根据队列 ID 设置队列的速率并发等设置
+  rpc ConfigQueue(TaskQueueConfigReq) returns (google.protobuf.Empty) {}
+  // 根据队列 ID 暂停队列
+  rpc PauseQueue(TaskQueueID) returns (google.protobuf.Empty) {}
+  // 根据队列 ID 开始队列
+  rpc StartQuque(TaskQueueID) returns (google.protobuf.Empty) {}
+
+  // 根据队列 ID 获取队列动态信息（比如 pending 状态的增加了 task1）
+  rpc QueryQueueMessage(TaskQueueQueryReq) returns (stream QueueMessageResp) {}
+
+  /* Task status */
+
+  // 暂时不支持创建Task时创建任务，需要提前创建好任务。queue_id不存在则报错
+  rpc CreateTask(TaskCreateRequest) returns (Task) {}
+
+  rpc CreateTasks(TaskCreateRequests) returns (stream Task) {}
+
+  // 根据 ID 获取单个任务状态
+  rpc QueryTask(TaskID) returns (stream Task) {}
+
+  // 根据 ID 开始单个任务
+  rpc ResumeTask(TaskID) returns (google.protobuf.Empty) {}
+
+  // 根据 ID 暂停单个任务
+  rpc PauseTask(TaskID) returns (google.protobuf.Empty) {}
+
+  // 根据 ID 删除单个任务
+  rpc DeleteTask(TaskID) returns (google.protobuf.Empty) {}
+
+  rpc SubscribeQueueMsg(TaskQueueID) returns (stream MiniMessageResp) {}
+
+  rpc CreateTaskUploadFolder(TaskFolderReq) returns (google.protobuf.Empty) {}
+
+  rpc CreateTaskDownloadFolder(TaskFolderReq) returns (google.protobuf.Empty) {}
+}

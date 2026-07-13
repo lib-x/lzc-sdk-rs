@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+// lzc-thumbnail 中会通过 /run/lzc-sys/lzc-thumbnail.sock 提供以下服务
+// - MediaMeta 提供视频或者图片的 metadata 信息
+// - Thumbnail 生成视频或者缩略图，目前不支持指定输出的格式和位置。生成的缩略图只可以通过 thumbnail gateway 的方式访问
+
+package cloud.lazycat.apis.common;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service MediaMeta {
+  rpc GetUserMediaMeta(GetUserMediaMetaRequest) returns (GetUserMediaMetaResponse) {}
+  rpc GetUserMediaMetaBatch(stream GetUserMediaMetaRequest) returns (stream GetUserMediaMetaResponse) {}
+}
+
+message GetUserMediaMetaRequest {
+  string user_id = 1;
+  // 相对于用户 home 目录的相对路径
+  string file_path = 2;
+}
+
+message GetUserMediaMetaResponse {
+  string mime_type = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  int64 datetime = 4;
+  map<string, string> exifData = 5;
+}
+
+service Thumbnail {
+  rpc GenerateFileThumbnail(GenerateFileThumbnailRequest) returns (google.protobuf.Empty) {}
+}
+
+message GenerateFileThumbnailRequest {
+  // 输出的文件
+  string input_file = 1;
+  // 参考大小
+  // 指定的尺寸为生成的缩略图最短边的长度。若指定的尺寸大于原图的最短边，则不会被缩放。
+  // 支持传入一个数组，同时生成多个格式的缩略图(等比缩放)。
+  repeated uint32 reference_sizes = 2;
+}

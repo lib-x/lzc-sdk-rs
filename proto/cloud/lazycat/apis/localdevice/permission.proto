@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.localdevice;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/localdevice";
+
+// 权限管理
+service PermissionManager {
+  // 检测权限
+  rpc GetPermission(PermissionRequest) returns (PermissionReply) {}
+  // 申请权限（会弹出对话框让用户决定是否同意）
+  rpc RequestPermission(PermissionRequest) returns (PermissionReply) {}
+  // 列举权限
+  rpc ListPermissions(google.protobuf.Empty) returns (ListPermissionsReply) {}
+  // 申请Token
+  rpc RequestAuthToken(RequestAuthTokenRequest) returns (RequestAuthTokenResponse) {}
+}
+
+enum Permission {
+  // 剪贴板
+  CLIPBOARD = 0;
+  // 设备信息
+  DEVICE_INFO = 1;
+  // 弹出对话框
+  OPEN_DIALOG = 2;
+  // 使用第三方app打开文件
+  OPEN_THIRD_PARTY_APP = 3;
+  // 发送应用到桌面快捷方式
+  PIN_APP = 4;
+  // 网络信息
+  NETWORK_INFO = 5;
+  // 相册
+  PHOTO_LIBRARY = 6;
+  // 文件
+  DOCUMENT = 7;
+  // 用户配置
+  USER_CONFIG = 8;
+}
+
+message PermissionRequest {
+  Permission permission = 1;
+}
+message PermissionReply {
+  bool result = 1;
+}
+
+message ListPermissionsReply {
+  // map<Permission, bool>
+  map<int32, bool> result = 1;
+}
+
+message RequestAuthTokenRequest {
+  bytes box_cert = 1;
+  bytes app_cert = 2;
+  // signature of $LAZYCAT_APPID.$LAZYCAT_BOX_DOMAIN
+  bytes signature = 3;
+}
+message RequestAuthTokenResponse {
+  string token = 1;
+  google.protobuf.Timestamp deadline = 2;
+}
