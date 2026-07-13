@@ -17,6 +17,7 @@ gateway = []
 remotesocks = ["gateway"]
 
 [dependencies]
+base64 = "0.22.1"
 bytes = "1.10.1"
 ed25519-dalek = { version = "2.2.0", features = ["pkcs8"] }
 futures-util = "0.3.31"

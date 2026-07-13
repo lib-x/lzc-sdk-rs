@@ -10,6 +10,8 @@ mod gateway;
 mod hserver;
 mod metadata;
 mod peer;
+#[cfg(feature = "remotesocks")]
+mod remotesocks;
 mod service_address;
 mod service_status;
 
@@ -33,6 +35,8 @@ pub use gateway::{ApiGateway, DeviceProxy};
 pub use hserver::{HServerClient, RemoteLocation, RemoteSocksEndpoint};
 pub use metadata::{REAL_UID_METADATA_KEY, with_real_uid};
 pub use peer::{Application, peer_application};
+#[cfg(feature = "remotesocks")]
+pub use remotesocks::{RemoteNetstack, RemoteTcpListener, RemoteTcpStream, SocksAddress};
 pub use service_address::query_service_address;
 pub use service_status::{
     DeviceProxyStatus, ServiceState, ServiceStatus, ServiceStatusQuerier, ServiceStatusRegistry,

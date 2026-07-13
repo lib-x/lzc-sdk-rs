@@ -96,6 +96,61 @@ pub enum Error {
         source: Option<io::Error>,
     },
 
+    /// A SOCKS address is malformed or cannot be represented on the wire.
+    #[error("invalid SOCKS address")]
+    InvalidSocksAddress,
+
+    /// A SOCKS domain or custom address exceeds the one-byte wire length.
+    #[error("SOCKS address is longer than 255 bytes")]
+    SocksAddressTooLong,
+
+    /// A SOCKS peer used an address type not defined by RFC 1928.
+    #[error("unsupported SOCKS address type {address_type:#04x}")]
+    UnsupportedSocksAddressType {
+        /// Unrecognized wire address type.
+        address_type: u8,
+    },
+
+    /// A network operation used by `RemoteSocks` failed.
+    #[error("RemoteSocks network error: {0}")]
+    RemoteSocksIo(#[from] io::Error),
+
+    /// Connecting to the `RemoteSocks` proxy exceeded the configured deadline.
+    #[error("RemoteSocks connection timed out")]
+    RemoteSocksTimeout,
+
+    /// A SOCKS peer replied with an unexpected protocol version.
+    #[error("unexpected SOCKS protocol version {version}")]
+    UnexpectedSocksVersion {
+        /// Version byte received from the peer.
+        version: u8,
+    },
+
+    /// A SOCKS peer rejected every offered authentication method.
+    #[error("SOCKS proxy rejected all authentication methods")]
+    SocksNoAcceptableAuthentication,
+
+    /// A SOCKS peer selected an authentication method this SDK does not support.
+    #[error("unsupported SOCKS authentication method {method:#04x}")]
+    UnsupportedSocksAuthentication {
+        /// Authentication method selected by the peer.
+        method: u8,
+    },
+
+    /// A SOCKS reply used a non-zero reserved byte.
+    #[error("invalid SOCKS reserved byte {reserved:#04x}")]
+    InvalidSocksReservedByte {
+        /// Reserved byte received from the peer.
+        reserved: u8,
+    },
+
+    /// A SOCKS command failed with the provided RFC 1928 reply code.
+    #[error("SOCKS proxy command failed with reply code {code:#04x}")]
+    SocksReply {
+        /// SOCKS reply code returned by the peer.
+        code: u8,
+    },
+
     /// A value cannot be represented as gRPC metadata.
     #[error("invalid gRPC metadata value")]
     InvalidMetadataValue(#[source] InvalidMetadataValue),
