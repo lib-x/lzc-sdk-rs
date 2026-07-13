@@ -1,8 +1,10 @@
 #![forbid(unsafe_code)]
 #![doc = "Rust SDK for `LazyCat` application and device APIs."]
 
+mod auth;
 mod connection;
 mod credentials;
+mod device_transport;
 mod error;
 mod metadata;
 mod peer;
@@ -18,8 +20,10 @@ pub mod proto {
     pub use crate::generated::lzc::dlna;
 }
 
+pub use auth::{AuthToken, TokenProvider, request_auth_token};
 pub use connection::{PORTAL_SOCKET_PATH, RUNTIME_SOCKET_PATH, connect_api, connect_api_with};
 pub use credentials::{APP_CERT_PATH, APP_KEY_PATH, CA_PATH, ClientCredentials, CredentialPaths};
+pub use device_transport::AuthenticatedService;
 pub use error::Error;
 pub use metadata::{REAL_UID_METADATA_KEY, with_real_uid};
 pub use peer::{Application, peer_application};

@@ -64,8 +64,10 @@ async fn connect_api_with_target(
             .await?);
     }
 
-    let endpoint = Endpoint::from_static("https://lazycat-runtime")
-        .tls_config_with_verifier(credentials.tls_config(), compatibility_server_verifier())?;
+    let endpoint = Endpoint::from_static("https://lazycat-runtime").tls_config_with_verifier(
+        credentials.tls_config("lazycat-runtime"),
+        compatibility_server_verifier(),
+    )?;
     let socket_path = Arc::new(socket_path.to_owned());
     let connector = service_fn(move |_: Uri| {
         let socket_path = Arc::clone(&socket_path);

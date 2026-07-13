@@ -3,10 +3,17 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use ed25519_dalek::pkcs8::DecodePrivateKey as _;
+use ed25519_dalek::{Signer as _, SigningKey as Ed25519SigningKey};
+use rsa::RsaPrivateKey;
+use rsa::pkcs1::DecodeRsaPrivateKey as _;
+use rsa::pkcs1v15::Pkcs1v15Sign;
 use rustls::crypto::ring;
+use rustls::pki_types::PrivateKeyDer;
 use rustls::sign::CertifiedKey;
 use secrecy::{ExposeSecret as _, SecretSlice};
 use tonic::transport::{ClientTlsConfig, Identity};
+use x509_parser::oid_registry::Oid;
 use x509_parser::parse_x509_certificate;
 
 use crate::Error;
@@ -57,6 +64,20 @@ struct CredentialMaterial {
     box_certificate_pem: Vec<u8>,
     application_certificate_pem: Vec<u8>,
     application_private_key_pem: SecretSlice<u8>,
+    application_id: String,
+    signing_key: ApplicationSigningKey,
+}
+
+enum ApplicationSigningKey {
+    Ed25519(Ed25519SigningKey),
+    Rsa(RsaPrivateKey),
+    Unsupported,
+}
+
+pub(crate) struct AuthRequestMaterial<'a> {
+    pub(crate) box_certificate: &'a [u8],
+    pub(crate) application_certificate: &'a [u8],
+    pub(crate) signature: Vec<u8>,
 }
 
 impl ClientCredentials {
@@ -75,7 +96,8 @@ impl ClientCredentials {
         validate_certificates(&paths.box_certificate, &box_certificate_pem)?;
         let application_certificates =
             validate_certificates(&paths.application_certificate, &application_certificate_pem)?;
-        validate_application_key(
+        let application_id = application_serial_number(&application_certificates);
+        let signing_key = validate_application_key(
             &paths.application_private_key,
             &application_private_key_pem,
             application_certificates,
@@ -87,6 +109,8 @@ impl ClientCredentials {
                 box_certificate_pem,
                 application_certificate_pem,
                 application_private_key_pem: application_private_key_pem.into(),
+                application_id,
+                signing_key,
             }),
         })
     }
@@ -97,14 +121,37 @@ impl ClientCredentials {
         &self.material.paths
     }
 
-    pub(crate) fn tls_config(&self) -> ClientTlsConfig {
+    pub(crate) fn tls_config(&self, domain_name: &str) -> ClientTlsConfig {
         ClientTlsConfig::new()
-            .domain_name("lazycat-runtime")
+            .domain_name(domain_name)
             .identity(Identity::from_pem(
                 &self.material.application_certificate_pem,
                 self.material.application_private_key_pem.expose_secret(),
             ))
             .assume_http2(true)
+    }
+
+    pub(crate) fn auth_request_material(&self) -> Result<AuthRequestMaterial<'_>, Error> {
+        let signature = match &self.material.signing_key {
+            ApplicationSigningKey::Ed25519(key) => key
+                .sign(self.material.application_id.as_bytes())
+                .to_bytes()
+                .to_vec(),
+            ApplicationSigningKey::Rsa(key) => key
+                .sign(
+                    Pkcs1v15Sign::new_unprefixed(),
+                    self.material.application_id.as_bytes(),
+                )
+                .map_err(|_| Error::AuthSigning)?,
+            ApplicationSigningKey::Unsupported => {
+                return Err(Error::UnsupportedAuthSigningKey);
+            }
+        };
+        Ok(AuthRequestMaterial {
+            box_certificate: &self.material.box_certificate_pem,
+            application_certificate: &self.material.application_certificate_pem,
+            signature,
+        })
     }
 }
 
@@ -179,7 +226,7 @@ fn validate_application_key(
     path: &Path,
     pem: &[u8],
     certificate_chain: Vec<rustls::pki_types::CertificateDer<'static>>,
-) -> Result<(), Error> {
+) -> Result<ApplicationSigningKey, Error> {
     let key = rustls_pemfile::private_key(&mut Cursor::new(pem))
         .map_err(|_| Error::InvalidPrivateKey {
             path: path.to_owned(),
@@ -189,11 +236,50 @@ fn validate_application_key(
             path: path.to_owned(),
             reason: "no private key found",
         })?;
+    let signing_key = application_signing_key(&key);
     CertifiedKey::from_der(certificate_chain, key, &ring::default_provider()).map_err(|_| {
         Error::InvalidPrivateKey {
             path: path.to_owned(),
             reason: "unsupported key or certificate mismatch",
         }
     })?;
-    Ok(())
+    Ok(signing_key)
+}
+
+fn application_serial_number(
+    certificates: &[rustls::pki_types::CertificateDer<'static>],
+) -> String {
+    let Some(certificate) = certificates.first() else {
+        return String::new();
+    };
+    let Ok((_, certificate)) = parse_x509_certificate(certificate.as_ref()) else {
+        return String::new();
+    };
+    let oid = Oid::from(&[2, 5, 4, 5]).expect("serialNumber OID is valid");
+    certificate
+        .subject()
+        .iter_by_oid(&oid)
+        .next()
+        .and_then(|value| value.as_str().ok())
+        .unwrap_or_default()
+        .to_owned()
+}
+
+fn application_signing_key(key: &PrivateKeyDer<'_>) -> ApplicationSigningKey {
+    match key {
+        PrivateKeyDer::Pkcs8(key) => {
+            if let Ok(key) = Ed25519SigningKey::from_pkcs8_der(key.secret_pkcs8_der()) {
+                ApplicationSigningKey::Ed25519(key)
+            } else if let Ok(key) = RsaPrivateKey::from_pkcs8_der(key.secret_pkcs8_der()) {
+                ApplicationSigningKey::Rsa(key)
+            } else {
+                ApplicationSigningKey::Unsupported
+            }
+        }
+        PrivateKeyDer::Pkcs1(key) => RsaPrivateKey::from_pkcs1_der(key.secret_pkcs1_der()).map_or(
+            ApplicationSigningKey::Unsupported,
+            ApplicationSigningKey::Rsa,
+        ),
+        _ => ApplicationSigningKey::Unsupported,
+    }
 }
