@@ -82,9 +82,11 @@ pub mod proto {
     pub mod localdevice;
     pub mod sys;
     pub mod dlna;
-    pub mod baseos;
+    pub mod containerd;
 }
 ```
+
+`baseos/hserver.proto` declares the existing `cloud.lazycat.apis.sys` package, so its HPortalSys types and client are generated into `proto::sys` rather than a separate module. The cgroup metrics proto is exposed beneath `proto::containerd`.
 
 All generated client and server modules are public so the Rust SDK can replace the Go generated API for both callers and service implementations.
 
