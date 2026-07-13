@@ -151,6 +151,33 @@ pub enum Error {
         code: u8,
     },
 
+    /// A SOCKS UDP datagram had invalid reserved or framing bytes.
+    #[error("invalid SOCKS UDP datagram header")]
+    InvalidSocksUdpHeader,
+
+    /// SOCKS UDP fragmentation is not supported by this SDK.
+    #[error("SOCKS UDP fragmentation is unsupported (fragment {fragment})")]
+    UnsupportedSocksUdpFragment {
+        /// Non-zero RFC 1928 fragment byte.
+        fragment: u8,
+    },
+
+    /// A UDP payload cannot fit in one transport frame.
+    #[error("RemoteSocks UDP payload is too large")]
+    SocksUdpPayloadTooLarge,
+
+    /// An operation requiring a fixed UDP peer was used on a bound socket.
+    #[error("RemoteSocks UDP socket has no connected peer")]
+    SocksUdpNotConnected,
+
+    /// The `RemoteSocks` TCP control stream has closed.
+    #[error("RemoteSocks UDP control stream closed")]
+    RemoteSocksControlClosed,
+
+    /// A SOCKS address cannot be used as a concrete UDP socket address.
+    #[error("invalid RemoteSocks UDP socket address")]
+    InvalidSocksUdpAddress,
+
     /// A value cannot be represented as gRPC metadata.
     #[error("invalid gRPC metadata value")]
     InvalidMetadataValue(#[source] InvalidMetadataValue),

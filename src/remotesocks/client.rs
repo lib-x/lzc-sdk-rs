@@ -15,6 +15,7 @@ use super::SocksAddress;
 
 pub(crate) const CONNECT_COMMAND: u8 = 0x01;
 pub(crate) const BIND_COMMAND: u8 = 0x02;
+pub(crate) const ASSOCIATE_COMMAND: u8 = 0x03;
 
 const SOCKS_VERSION: u8 = 0x05;
 const NO_AUTHENTICATION: u8 = 0x00;

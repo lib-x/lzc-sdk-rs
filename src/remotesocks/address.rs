@@ -106,30 +106,45 @@ impl SocksAddress {
     /// Returns an error for truncated data, trailing bytes, invalid UTF-8,
     /// malformed custom addresses, or unsupported address types.
     pub fn decode(encoded: &[u8]) -> Result<Self, Error> {
+        let (address, consumed) = Self::decode_prefix(encoded)?;
+        if consumed != encoded.len() {
+            return Err(Error::InvalidSocksAddress);
+        }
+        Ok(address)
+    }
+
+    pub(crate) fn decode_prefix(encoded: &[u8]) -> Result<(Self, usize), Error> {
         let (&address_type, remainder) = encoded.split_first().ok_or(Error::InvalidSocksAddress)?;
         match address_type {
             IPV4_ADDRESS => {
-                if remainder.len() != 6 {
+                if remainder.len() < 6 {
                     return Err(Error::InvalidSocksAddress);
                 }
                 let ip = Ipv4Addr::new(remainder[0], remainder[1], remainder[2], remainder[3]);
                 let port = u16::from_be_bytes([remainder[4], remainder[5]]);
-                Ok(Self::Ip(SocketAddr::new(IpAddr::V4(ip), port)))
+                Ok((Self::Ip(SocketAddr::new(IpAddr::V4(ip), port)), 7))
             }
             IPV6_ADDRESS => {
-                if remainder.len() != 18 {
+                if remainder.len() < 18 {
                     return Err(Error::InvalidSocksAddress);
                 }
                 let octets: [u8; 16] = remainder[..16]
                     .try_into()
                     .map_err(|_| Error::InvalidSocksAddress)?;
                 let port = u16::from_be_bytes([remainder[16], remainder[17]]);
-                Ok(Self::Ip(SocketAddr::new(
-                    IpAddr::V6(Ipv6Addr::from(octets)),
-                    port,
-                )))
+                Ok((
+                    Self::Ip(SocketAddr::new(IpAddr::V6(Ipv6Addr::from(octets)), port)),
+                    19,
+                ))
             }
-            DOMAIN_ADDRESS => decode_domain(remainder),
+            DOMAIN_ADDRESS => {
+                let (&length, _) = remainder.split_first().ok_or(Error::InvalidSocksAddress)?;
+                let consumed = usize::from(length) + 4;
+                if encoded.len() < consumed {
+                    return Err(Error::InvalidSocksAddress);
+                }
+                Ok((decode_domain(&remainder[..consumed - 1])?, consumed))
+            }
             address_type => Err(Error::UnsupportedSocksAddressType { address_type }),
         }
     }
