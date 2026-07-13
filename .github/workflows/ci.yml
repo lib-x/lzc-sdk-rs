@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: clippy,rustfmt
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.71.0
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-directories: .tools
+
+      - name: Verify vendored protobuf sources
+        run: ./scripts/sync-protos.sh --check
+
+      - name: Verify generated Rust sources
+        run: ./scripts/generate.sh --check
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --all-features --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --all-features
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --all-features --no-deps
+
+      - name: Verify package
+        run: cargo package --allow-dirty

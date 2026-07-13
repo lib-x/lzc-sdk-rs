@@ -16,6 +16,7 @@ mod service_address;
 mod service_status;
 
 #[allow(clippy::all, clippy::pedantic, non_camel_case_types)]
+#[allow(rustdoc::broken_intra_doc_links)]
 mod generated {
     include!("gen/mod.rs");
 }

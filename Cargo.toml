@@ -20,20 +20,16 @@ remotesocks = ["gateway"]
 base64 = "0.22.1"
 bytes = "1.10.1"
 ed25519-dalek = { version = "2.2.0", features = ["pkcs8"] }
-futures-util = "0.3.31"
 http = "1.3.1"
 hyper-util = { version = "0.1.20", features = ["tokio"] }
-pin-project-lite = "0.2.16"
 prost = "0.14.4"
 prost-types = "0.14.4"
 rsa = { version = "0.9.9", features = ["pem"] }
 rustls = { version = "0.23.41", default-features = false, features = ["ring", "std"] }
 rustls-pemfile = "2.2.0"
 secrecy = "0.10.3"
-socket2 = { version = "0.6.1", features = ["all"] }
 thiserror = "2.0.17"
-tokio = { version = "1.48.0", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "test-util", "time"] }
-tokio-rustls = { version = "0.26.4", default-features = false, features = ["ring"] }
+tokio = { version = "1.48.0", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
 tonic = { version = "0.14.6", features = ["tls-ring"] }
 tonic-prost = "0.14.6"
 tower = { version = "0.5.2", features = ["util"] }
@@ -41,9 +37,11 @@ url = "2.5.7"
 x509-parser = "0.18.1"
 
 [dev-dependencies]
+futures-util = "0.3.31"
 rcgen = { version = "0.14.8", features = ["aws_lc_rs", "pem", "x509-parser"] }
 sha2 = "0.10.9"
 tempfile = "3.23.0"
+tokio = { version = "1.48.0", features = ["test-util"] }
 tokio-stream = { version = "0.1.17", features = ["net"] }
 
 [lints.rust]
