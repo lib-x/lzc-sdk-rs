@@ -2,7 +2,7 @@
 
 Rust client/server bindings and runtime helpers for LazyCat application and
 device APIs. The crate covers the generated protobuf surface and the
-handwritten behavior provided by the official Go SDK: runtime gateway access,
+handwritten behavior provided by the [official Go SDK](https://gitee.com/linakesi/lzc-sdk): runtime gateway access,
 device mTLS authentication, token caching, service status, HPortalSys,
 RemoteSocks TCP/UDP, peer identity, metadata compatibility, and service-address
 discovery.
