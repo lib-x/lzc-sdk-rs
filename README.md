@@ -20,14 +20,22 @@ checkout or a maintainer's local path.
 
 ## Installation
 
-Until the crate is published to a registry, pin the Git release tag:
+Add the published crate from [crates.io](https://crates.io/crates/lzc-sdk):
+
+```bash
+cargo add lzc-sdk
+```
+
+Or declare the dependency directly:
 
 ```toml
 [dependencies]
-lzc-sdk = { git = "https://github.com/lib-x/lzc-sdk-rs", tag = "v0.1.0" }
+lzc-sdk = "0.1.1"
 ```
 
 Default features expose the full protobuf, gateway, and RemoteSocks APIs.
+API documentation is available on [docs.rs](https://docs.rs/lzc-sdk), and the
+source repository is [lib-x/lzc-sdk-rs](https://github.com/lib-x/lzc-sdk-rs).
 
 ## Runtime API gateway
 

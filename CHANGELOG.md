@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.1.1] - 2026-07-14
+
+### Changed
+
+- Updated the packaged README to install `lzc-sdk` from crates.io and link to
+  crates.io, docs.rs, and the GitHub source repository.
+
 ## [0.1.0] - 2026-07-13
 
 ### Added
