@@ -16,7 +16,7 @@ baseos_checkout="${LZC_BASEOS_SOURCE:-${root}/upstream/lzc-baseos-protos}"
 for checkout in "${sdk_checkout}" "${baseos_checkout}"; do
   if [[ ! -e "${checkout}/.git" ]]; then
     echo "missing upstream Git checkout: ${checkout}" >&2
-    echo "run: git submodule update --init" >&2
+    echo "run: git submodule update --init --checkout" >&2
     exit 1
   fi
 done
@@ -132,7 +132,7 @@ sort -k2 "${source_manifest}" > "${stage}/proto/SOURCE_MANIFEST.sha256"
   printf -- '- BaseOS: `https://gitee.com/linakesi/lzc-baseos-protos`\n'
   printf -- '- BaseOS commit: `%s`\n' "${baseos_revision}"
   printf '\nFiles are placed under protobuf package directories, imports are rewritten accordingly, and `buf format` is applied. Message, enum, field, and service definitions remain unchanged.\n'
-  printf '\nUpstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.\n'
+  printf '\nUpstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init --checkout` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote --checkout upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.\n'
 } > "${stage}/proto/UPSTREAM.md"
 
 (

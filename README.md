@@ -154,7 +154,7 @@ Maintainers need Git and Buf 1.71+. Initialize the pinned upstream submodules
 with network access once:
 
 ```bash
-git submodule update --init
+git submodule update --init --checkout
 ```
 
 The official SDK and BaseOS sources live in `upstream/lzc-sdk` and
@@ -170,7 +170,7 @@ submodules; the official SDK's unrelated Swift submodule is not needed.
 To update to the latest upstream revisions:
 
 ```bash
-git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos
+git submodule update --remote --checkout upstream/lzc-sdk upstream/lzc-baseos-protos
 ./scripts/sync-protos.sh
 ./scripts/generate.sh
 ```
@@ -182,6 +182,10 @@ transformed SHA-256 manifests plus the full upstream commit IDs. Optional
 `LZC_SDK_SOURCE` and `LZC_BASEOS_SOURCE` overrides must point to local Git
 checkouts. Cargo builds use only the committed sources; published crates
 exclude `upstream/`.
+
+Both submodules use `update = none` so Cargo Git dependencies also skip these
+maintenance-only sources. Maintainers and CI explicitly select `--checkout`
+when initializing or updating them.
 
 Commit upstream protobuf edits before synchronizing. The script rejects
 modified, untracked, or ignored protobuf inputs so the recorded commit IDs

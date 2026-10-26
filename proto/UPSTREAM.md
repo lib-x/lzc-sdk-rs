@@ -7,4 +7,4 @@
 
 Files are placed under protobuf package directories, imports are rewritten accordingly, and `buf format` is applied. Message, enum, field, and service definitions remain unchanged.
 
-Upstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.
+Upstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init --checkout` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote --checkout upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.

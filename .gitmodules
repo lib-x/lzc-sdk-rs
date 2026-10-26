@@ -2,7 +2,9 @@
 	path = upstream/lzc-sdk
 	url = https://gitee.com/linakesi/lzc-sdk.git
 	branch = master
+	update = none
 [submodule "upstream/lzc-baseos-protos"]
 	path = upstream/lzc-baseos-protos
 	url = https://gitee.com/linakesi/lzc-baseos-protos.git
 	branch = master
+	update = none
