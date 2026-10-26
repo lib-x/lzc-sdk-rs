@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use lzc_sdk::{Error, RemoteNetstack, RemoteSocksEndpoint, SocksAddress};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpSocket};
 
 #[test]
 fn socks_address_codec_matches_rfc1928_and_lazycat_custom_fixtures() {
@@ -261,15 +261,15 @@ async fn connect_with_proxy_replies(
 
 #[tokio::test]
 async fn remote_tcp_refreshes_a_failed_endpoint_once_and_caches_the_replacement() {
-    let unavailable = TcpListener::bind("127.0.0.1:0")
-        .await
+    // Hold the port without listening so another fixture cannot reuse it.
+    let unavailable = TcpSocket::new_v4().expect("create unavailable socket");
+    unavailable
+        .bind(SocketAddr::from(([127, 0, 0, 1], 0)))
         .expect("reserve unavailable address");
     let unavailable_endpoint: RemoteSocksEndpoint =
         format!("socks5://{}", unavailable.local_addr().unwrap())
             .parse()
             .expect("unavailable endpoint");
-    drop(unavailable);
-
     let proxy = TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind replacement proxy");
