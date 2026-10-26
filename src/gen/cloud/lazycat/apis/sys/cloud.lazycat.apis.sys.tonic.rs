@@ -2263,6 +2263,58 @@ pub mod hal_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn set_fan_configs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetFanConfigsResp>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.HalService/SetFanConfigs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HalService", "SetFanConfigs"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_fan_configs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetFanConfigsResp>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.HalService/GetFanConfigs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HalService", "GetFanConfigs"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -2347,6 +2399,20 @@ pub mod hal_service_server {
             request: tonic::Request<super::GetFanConfigReq>,
         ) -> std::result::Result<
             tonic::Response<super::GetFanConfigResp>,
+            tonic::Status,
+        >;
+        async fn set_fan_configs(
+            &self,
+            request: tonic::Request<super::SetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetFanConfigsResp>,
+            tonic::Status,
+        >;
+        async fn get_fan_configs(
+            &self,
+            request: tonic::Request<super::GetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetFanConfigsResp>,
             tonic::Status,
         >;
     }
@@ -2905,6 +2971,96 @@ pub mod hal_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/cloud.lazycat.apis.sys.HalService/SetFanConfigs" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetFanConfigsSvc<T: HalService>(pub Arc<T>);
+                    impl<
+                        T: HalService,
+                    > tonic::server::UnaryService<super::SetFanConfigsReq>
+                    for SetFanConfigsSvc<T> {
+                        type Response = super::SetFanConfigsResp;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetFanConfigsReq>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as HalService>::set_fan_configs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetFanConfigsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/cloud.lazycat.apis.sys.HalService/GetFanConfigs" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetFanConfigsSvc<T: HalService>(pub Arc<T>);
+                    impl<
+                        T: HalService,
+                    > tonic::server::UnaryService<super::GetFanConfigsReq>
+                    for GetFanConfigsSvc<T> {
+                        type Response = super::GetFanConfigsResp;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetFanConfigsReq>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as HalService>::get_fan_configs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetFanConfigsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
@@ -3077,6 +3233,58 @@ pub mod fan_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn set_fan_configs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetFanConfigsResp>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.FanService/SetFanConfigs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.FanService", "SetFanConfigs"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_fan_configs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetFanConfigsResp>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.FanService/GetFanConfigs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.FanService", "GetFanConfigs"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -3104,6 +3312,20 @@ pub mod fan_service_server {
             request: tonic::Request<super::GetFanConfigReq>,
         ) -> std::result::Result<
             tonic::Response<super::GetFanConfigResp>,
+            tonic::Status,
+        >;
+        async fn set_fan_configs(
+            &self,
+            request: tonic::Request<super::SetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetFanConfigsResp>,
+            tonic::Status,
+        >;
+        async fn get_fan_configs(
+            &self,
+            request: tonic::Request<super::GetFanConfigsReq>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetFanConfigsResp>,
             tonic::Status,
         >;
     }
@@ -3273,6 +3495,96 @@ pub mod fan_service_server {
                     };
                     Box::pin(fut)
                 }
+                "/cloud.lazycat.apis.sys.FanService/SetFanConfigs" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetFanConfigsSvc<T: FanService>(pub Arc<T>);
+                    impl<
+                        T: FanService,
+                    > tonic::server::UnaryService<super::SetFanConfigsReq>
+                    for SetFanConfigsSvc<T> {
+                        type Response = super::SetFanConfigsResp;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetFanConfigsReq>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as FanService>::set_fan_configs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetFanConfigsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/cloud.lazycat.apis.sys.FanService/GetFanConfigs" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetFanConfigsSvc<T: FanService>(pub Arc<T>);
+                    impl<
+                        T: FanService,
+                    > tonic::server::UnaryService<super::GetFanConfigsReq>
+                    for GetFanConfigsSvc<T> {
+                        type Response = super::GetFanConfigsResp;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetFanConfigsReq>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as FanService>::get_fan_configs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetFanConfigsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
@@ -3392,6 +3704,32 @@ pub mod h_portal_sys_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn set_origin_info(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetOriginInfoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetOriginInfoResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.HPortalSys/SetOriginInfo",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "SetOriginInfo"),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn query_h_server_info(
             &mut self,
@@ -3855,10 +4193,13 @@ pub mod h_portal_sys_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn set_relay(
+        pub async fn allow_proxy_it(
             &mut self,
-            request: impl tonic::IntoRequest<super::SetRelayRequest>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::AllowProxyItRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AllowProxyItResponse>,
+            tonic::Status,
+        > {
             self.inner
                 .ready()
                 .await
@@ -3869,19 +4210,22 @@ pub mod h_portal_sys_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/cloud.lazycat.apis.sys.HPortalSys/SetRelay",
+                "/cloud.lazycat.apis.sys.HPortalSys/AllowProxyIt",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "SetRelay"),
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "AllowProxyIt"),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn dump_peers(
+        pub async fn add_address(
             &mut self,
-            request: impl tonic::IntoRequest<()>,
-        ) -> std::result::Result<tonic::Response<super::PeersInfo>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::AddAddressRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AddAddressResponse>,
+            tonic::Status,
+        > {
             self.inner
                 .ready()
                 .await
@@ -3892,12 +4236,38 @@ pub mod h_portal_sys_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/cloud.lazycat.apis.sys.HPortalSys/DumpPeers",
+                "/cloud.lazycat.apis.sys.HPortalSys/AddAddress",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "DumpPeers"),
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "AddAddress"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_address(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveAddressRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveAddressResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/cloud.lazycat.apis.sys.HPortalSys/RemoveAddress",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("cloud.lazycat.apis.sys.HPortalSys", "RemoveAddress"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -3916,6 +4286,13 @@ pub mod h_portal_sys_server {
     /// Generated trait containing gRPC methods that should be implemented for use with HPortalSysServer.
     #[async_trait]
     pub trait HPortalSys: std::marker::Send + std::marker::Sync + 'static {
+        async fn set_origin_info(
+            &self,
+            request: tonic::Request<super::SetOriginInfoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SetOriginInfoResponse>,
+            tonic::Status,
+        >;
         async fn query_h_server_info(
             &self,
             request: tonic::Request<()>,
@@ -4018,14 +4395,27 @@ pub mod h_portal_sys_server {
             tonic::Response<super::QueryBoxServicePeerCredResponse>,
             tonic::Status,
         >;
-        async fn set_relay(
+        async fn allow_proxy_it(
             &self,
-            request: tonic::Request<super::SetRelayRequest>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
-        async fn dump_peers(
+            request: tonic::Request<super::AllowProxyItRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AllowProxyItResponse>,
+            tonic::Status,
+        >;
+        async fn add_address(
             &self,
-            request: tonic::Request<()>,
-        ) -> std::result::Result<tonic::Response<super::PeersInfo>, tonic::Status>;
+            request: tonic::Request<super::AddAddressRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AddAddressResponse>,
+            tonic::Status,
+        >;
+        async fn remove_address(
+            &self,
+            request: tonic::Request<super::RemoveAddressRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveAddressResponse>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct HPortalSysServer<T> {
@@ -4103,6 +4493,51 @@ pub mod h_portal_sys_server {
         }
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             match req.uri().path() {
+                "/cloud.lazycat.apis.sys.HPortalSys/SetOriginInfo" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetOriginInfoSvc<T: HPortalSys>(pub Arc<T>);
+                    impl<
+                        T: HPortalSys,
+                    > tonic::server::UnaryService<super::SetOriginInfoRequest>
+                    for SetOriginInfoSvc<T> {
+                        type Response = super::SetOriginInfoResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetOriginInfoRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as HPortalSys>::set_origin_info(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetOriginInfoSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
                 "/cloud.lazycat.apis.sys.HPortalSys/QueryHServerInfo" => {
                     #[allow(non_camel_case_types)]
                     struct QueryHServerInfoSvc<T: HPortalSys>(pub Arc<T>);
@@ -4913,25 +5348,25 @@ pub mod h_portal_sys_server {
                     };
                     Box::pin(fut)
                 }
-                "/cloud.lazycat.apis.sys.HPortalSys/SetRelay" => {
+                "/cloud.lazycat.apis.sys.HPortalSys/AllowProxyIt" => {
                     #[allow(non_camel_case_types)]
-                    struct SetRelaySvc<T: HPortalSys>(pub Arc<T>);
+                    struct AllowProxyItSvc<T: HPortalSys>(pub Arc<T>);
                     impl<
                         T: HPortalSys,
-                    > tonic::server::UnaryService<super::SetRelayRequest>
-                    for SetRelaySvc<T> {
-                        type Response = ();
+                    > tonic::server::UnaryService<super::AllowProxyItRequest>
+                    for AllowProxyItSvc<T> {
+                        type Response = super::AllowProxyItResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::SetRelayRequest>,
+                            request: tonic::Request<super::AllowProxyItRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as HPortalSys>::set_relay(&inner, request).await
+                                <T as HPortalSys>::allow_proxy_it(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -4942,7 +5377,7 @@ pub mod h_portal_sys_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = SetRelaySvc(inner);
+                        let method = AllowProxyItSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -4958,20 +5393,25 @@ pub mod h_portal_sys_server {
                     };
                     Box::pin(fut)
                 }
-                "/cloud.lazycat.apis.sys.HPortalSys/DumpPeers" => {
+                "/cloud.lazycat.apis.sys.HPortalSys/AddAddress" => {
                     #[allow(non_camel_case_types)]
-                    struct DumpPeersSvc<T: HPortalSys>(pub Arc<T>);
-                    impl<T: HPortalSys> tonic::server::UnaryService<()>
-                    for DumpPeersSvc<T> {
-                        type Response = super::PeersInfo;
+                    struct AddAddressSvc<T: HPortalSys>(pub Arc<T>);
+                    impl<
+                        T: HPortalSys,
+                    > tonic::server::UnaryService<super::AddAddressRequest>
+                    for AddAddressSvc<T> {
+                        type Response = super::AddAddressResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::AddAddressRequest>,
+                        ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as HPortalSys>::dump_peers(&inner, request).await
+                                <T as HPortalSys>::add_address(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -4982,7 +5422,52 @@ pub mod h_portal_sys_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = DumpPeersSvc(inner);
+                        let method = AddAddressSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/cloud.lazycat.apis.sys.HPortalSys/RemoveAddress" => {
+                    #[allow(non_camel_case_types)]
+                    struct RemoveAddressSvc<T: HPortalSys>(pub Arc<T>);
+                    impl<
+                        T: HPortalSys,
+                    > tonic::server::UnaryService<super::RemoveAddressRequest>
+                    for RemoveAddressSvc<T> {
+                        type Response = super::RemoveAddressResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RemoveAddressRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as HPortalSys>::remove_address(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = RemoveAddressSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

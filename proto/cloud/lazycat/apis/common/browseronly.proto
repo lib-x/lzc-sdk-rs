@@ -34,6 +34,9 @@ message SessionInfo {
   string device_id = 2;
 
   google.protobuf.Timestamp when = 3;
+
+  // 当前 hclient 所属逻辑设备
+  string hclient_device_id = 4;
 }
 
 message AppInfo {

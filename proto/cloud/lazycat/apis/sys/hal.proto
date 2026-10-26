@@ -30,6 +30,10 @@ service HalService {
   rpc SetFanConfig(SetFanConfigReq) returns (SetFanConfigResp) {}
   // 获取风扇配置
   rpc GetFanConfig(GetFanConfigReq) returns (GetFanConfigResp) {}
+  // 设置多风扇配置
+  rpc SetFanConfigs(SetFanConfigsReq) returns (SetFanConfigsResp) {}
+  // 获取多风扇配置
+  rpc GetFanConfigs(GetFanConfigsReq) returns (GetFanConfigsResp) {}
 }
 
 service FanService {
@@ -37,11 +41,16 @@ service FanService {
   rpc SetFanConfig(SetFanConfigReq) returns (SetFanConfigResp) {}
   // 获取风扇配置
   rpc GetFanConfig(GetFanConfigReq) returns (GetFanConfigResp) {}
+  // 设置多风扇配置
+  rpc SetFanConfigs(SetFanConfigsReq) returns (SetFanConfigsResp) {}
+  // 获取多风扇配置
+  rpc GetFanConfigs(GetFanConfigsReq) returns (GetFanConfigsResp) {}
 }
 
 enum FanType {
   CPU_FAN = 0;
   MEM_FAN = 1;
+  SYS_FAN = 2;
 }
 
 message FanStatus {
@@ -89,6 +98,23 @@ message GetFanConfigReq {}
 message GetFanConfigResp {
   FanConfig config = 1;
   uint32 fanRpm = 2;
+}
+
+message FanConfigEntry {
+  optional FanType type = 1;
+  FanConfig config = 2;
+}
+
+message SetFanConfigsReq {
+  repeated FanConfigEntry configs = 1;
+}
+
+message SetFanConfigsResp {}
+
+message GetFanConfigsReq {}
+
+message GetFanConfigsResp {
+  repeated FanConfigEntry configs = 1;
 }
 
 message PLedState {

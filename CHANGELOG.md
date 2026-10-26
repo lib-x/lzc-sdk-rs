@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.0] - 2026-10-26
+
+### Added
+
+- HClient management bindings and the `ApiGateway::hclients()` accessor.
+- Local IP address enumeration, multi-fan configuration, and updated HPortalSys
+  origin, proxy, and advertised-address management APIs from upstream.
+- Pinned upstream Git submodules and daily/manual GitHub Actions synchronization
+  that regenerates bindings and builds a separate update branch.
+
+### Changed
+
+- Updated official SDK protocols to `f5bd0470167da6df10f5ebb396525d9a12706d7c`
+  and BaseOS protocols to `a8715f13eac24edd3d307d50bde42abc6800b728`.
+- Protobuf synchronization reads local submodule checkouts and records their
+  full commit IDs; published crates remain independent of those checkouts.
+
+### Breaking changes
+
+- `NetworkManager::ws_discovery` now returns a stream of `WSDiscoveryDevice`
+  messages instead of a `WSDiscoveryResponse` containing all devices.
+- Removed upstream `Client::login_tv`, `TVLoginInfo`,
+  `NetworkManager::native_http_request`, and its request/response types.
+- Removed upstream HPortalSys `set_relay` and `dump_peers` RPCs and the
+  `RegisterBoxServiceRequest::extra_info` field; renamed
+  `ChangeTrustEndDeviceRequest::cid` to `peer_id`.
+
 ## [0.1.1] - 2026-07-14
 
 ### Changed

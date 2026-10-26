@@ -889,29 +889,6 @@ pub mod client_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn login_tv(
-            &mut self,
-            request: impl tonic::IntoRequest<super::TvLoginInfo>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/cloud.lazycat.apis.localdevice.Client/LoginTV",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("cloud.lazycat.apis.localdevice.Client", "LoginTV"),
-                );
-            self.inner.unary(req, path, codec).await
-        }
     }
 }
 /// Generated server implementations.
@@ -934,10 +911,6 @@ pub mod client_server {
             tonic::Response<super::GetClientInfoResponse>,
             tonic::Status,
         >;
-        async fn login_tv(
-            &self,
-            request: tonic::Request<super::TvLoginInfo>,
-        ) -> std::result::Result<tonic::Response<()>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct ClientServer<T> {
@@ -1040,49 +1013,6 @@ pub mod client_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetClientInfoSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/cloud.lazycat.apis.localdevice.Client/LoginTV" => {
-                    #[allow(non_camel_case_types)]
-                    struct LoginTVSvc<T: Client>(pub Arc<T>);
-                    impl<T: Client> tonic::server::UnaryService<super::TvLoginInfo>
-                    for LoginTVSvc<T> {
-                        type Response = ();
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::TvLoginInfo>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Client>::login_tv(&inner, request).await
-                            };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let method = LoginTVSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -4290,7 +4220,7 @@ pub mod network_manager_client {
             &mut self,
             request: impl tonic::IntoRequest<super::WsDiscoveryRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::WsDiscoveryResponse>,
+            tonic::Response<tonic::codec::Streaming<super::WsDiscoveryDevice>>,
             tonic::Status,
         > {
             self.inner
@@ -4313,13 +4243,13 @@ pub mod network_manager_client {
                         "WSDiscovery",
                     ),
                 );
-            self.inner.unary(req, path, codec).await
+            self.inner.server_streaming(req, path, codec).await
         }
-        pub async fn native_http_request(
+        pub async fn list_local_ip_addresses(
             &mut self,
-            request: impl tonic::IntoRequest<super::NativeHttpRequestRequest>,
+            request: impl tonic::IntoRequest<()>,
         ) -> std::result::Result<
-            tonic::Response<super::NativeHttpRequestResponse>,
+            tonic::Response<super::ListLocalIpAddressesResponse>,
             tonic::Status,
         > {
             self.inner
@@ -4332,14 +4262,14 @@ pub mod network_manager_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/cloud.lazycat.apis.localdevice.NetworkManager/NativeHttpRequest",
+                "/cloud.lazycat.apis.localdevice.NetworkManager/ListLocalIPAddresses",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "cloud.lazycat.apis.localdevice.NetworkManager",
-                        "NativeHttpRequest",
+                        "ListLocalIPAddresses",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -4379,18 +4309,24 @@ pub mod network_manager_server {
             tonic::Response<Self::ListWifiNetworksStream>,
             tonic::Status,
         >;
+        /// Server streaming response type for the WSDiscovery method.
+        type WSDiscoveryStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<super::WsDiscoveryDevice, tonic::Status>,
+            >
+            + std::marker::Send
+            + 'static;
         async fn ws_discovery(
             &self,
             request: tonic::Request<super::WsDiscoveryRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::WsDiscoveryResponse>,
+            tonic::Response<Self::WSDiscoveryStream>,
             tonic::Status,
         >;
-        async fn native_http_request(
+        async fn list_local_ip_addresses(
             &self,
-            request: tonic::Request<super::NativeHttpRequestRequest>,
+            request: tonic::Request<()>,
         ) -> std::result::Result<
-            tonic::Response<super::NativeHttpRequestResponse>,
+            tonic::Response<super::ListLocalIpAddressesResponse>,
             tonic::Status,
         >;
     }
@@ -4563,11 +4499,12 @@ pub mod network_manager_server {
                     struct WSDiscoverySvc<T: NetworkManager>(pub Arc<T>);
                     impl<
                         T: NetworkManager,
-                    > tonic::server::UnaryService<super::WsDiscoveryRequest>
+                    > tonic::server::ServerStreamingService<super::WsDiscoveryRequest>
                     for WSDiscoverySvc<T> {
-                        type Response = super::WsDiscoveryResponse;
+                        type Response = super::WsDiscoveryDevice;
+                        type ResponseStream = T::WSDiscoveryStream;
                         type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
+                            tonic::Response<Self::ResponseStream>,
                             tonic::Status,
                         >;
                         fn call(
@@ -4598,30 +4535,28 @@ pub mod network_manager_server {
                                 max_decoding_message_size,
                                 max_encoding_message_size,
                             );
-                        let res = grpc.unary(method, req).await;
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
                 }
-                "/cloud.lazycat.apis.localdevice.NetworkManager/NativeHttpRequest" => {
+                "/cloud.lazycat.apis.localdevice.NetworkManager/ListLocalIPAddresses" => {
                     #[allow(non_camel_case_types)]
-                    struct NativeHttpRequestSvc<T: NetworkManager>(pub Arc<T>);
-                    impl<
-                        T: NetworkManager,
-                    > tonic::server::UnaryService<super::NativeHttpRequestRequest>
-                    for NativeHttpRequestSvc<T> {
-                        type Response = super::NativeHttpRequestResponse;
+                    struct ListLocalIPAddressesSvc<T: NetworkManager>(pub Arc<T>);
+                    impl<T: NetworkManager> tonic::server::UnaryService<()>
+                    for ListLocalIPAddressesSvc<T> {
+                        type Response = super::ListLocalIpAddressesResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::NativeHttpRequestRequest>,
-                        ) -> Self::Future {
+                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as NetworkManager>::native_http_request(&inner, request)
+                                <T as NetworkManager>::list_local_ip_addresses(
+                                        &inner,
+                                        request,
+                                    )
                                     .await
                             };
                             Box::pin(fut)
@@ -4633,7 +4568,7 @@ pub mod network_manager_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = NativeHttpRequestSvc(inner);
+                        let method = ListLocalIPAddressesSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

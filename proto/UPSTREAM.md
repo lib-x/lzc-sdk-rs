@@ -1,10 +1,10 @@
 # Vendored LazyCat Protocol Sources
 
 - Official SDK: `https://gitee.com/linakesi/lzc-sdk`
-- Official SDK commit: `81adfc8bfa8a46212ceed4cf9c5e4d675f9a0458`
-- BaseOS module: `gitee.com/linakesi/lzc-baseos-protos@v0.0.0-20240409034726-d8d3d3375144`
-- BaseOS commit: `d8d3d3375144`
+- Official SDK commit: `f5bd0470167da6df10f5ebb396525d9a12706d7c`
+- BaseOS: `https://gitee.com/linakesi/lzc-baseos-protos`
+- BaseOS commit: `a8715f13eac24edd3d307d50bde42abc6800b728`
 
 Files are placed under protobuf package directories, imports are rewritten accordingly, and `buf format` is applied. Message, enum, field, and service definitions remain unchanged.
 
-Run `./scripts/sync-protos.sh` to refresh this tree. This maintenance command requires Git, Buf, and network access unless source overrides are provided. SDK builds do not run it.
+Upstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.

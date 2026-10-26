@@ -216,6 +216,7 @@ message QueryAssetUrlPathReply {
   string asset_url = 1;
   string thumbnail_url = 2;
   string md5_url = 3;
+  string restore_md5_url = 4;
 }
 
 message ListAlbumAssetStatsRequet {

@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package cloud.lazycat.apis.common;
+
+import "cloud/lazycat/apis/common/security_context.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "gitee.com/linakesi/lzc-sdk/lang/go/common";
+
+service HClientService {
+  rpc ListHClients(ListHClientsRequest) returns (ListHClientsReply) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc ListHClientDevices(ListHClientDevicesRequest) returns (ListHClientDevicesReply) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc GetHClientDeviceCandidates(GetHClientDeviceCandidatesRequest) returns (GetHClientDeviceCandidatesReply) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc SetHClientDeviceBinding(SetHClientDeviceBindingRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc SetHClientDeviceRemarkName(SetHClientDeviceRemarkNameRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc DeleteHClient(DeleteHClientRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+
+  rpc DeleteHClientDevice(DeleteHClientDeviceRequest) returns (google.protobuf.Empty) {
+    option (cloud.lazycat.apis.common.scontext).require_user_class = TARGET_USER;
+  }
+}
+
+message HClient {
+  string id = 1;
+  string class = 2;
+  string hclient_device_id = 3;
+  bool is_online = 4;
+  string device_api_url = 5;
+  google.protobuf.Timestamp trusted_at = 6;
+  google.protobuf.Timestamp last_login_at = 7;
+  string name = 8;
+  string model = 9;
+  string os = 10;
+  bool is_mobile = 11;
+  bool is_tv = 12;
+  string lang = 13;
+  string time_zone = 14;
+  optional bool is_wifi = 15;
+}
+
+message HClientDevice {
+  string id = 1;
+  string remark_name = 2;
+  bool is_online = 3;
+  google.protobuf.Timestamp last_login_at = 4;
+  repeated HClient hclients = 6;
+}
+
+message HClientDeviceCandidate {
+  HClientDevice device = 1;
+  double posterior_probability = 2;
+}
+
+message HClientDeviceIDChange {
+  string hclient_device_id = 1;
+  google.protobuf.Timestamp changed_at = 2;
+}
+
+message ListHClientsRequest {
+  string uid = 1;
+}
+
+message ListHClientsReply {
+  repeated HClient hclients = 1;
+}
+
+message ListHClientDevicesRequest {
+  string uid = 1;
+}
+
+message ListHClientDevicesReply {
+  repeated HClientDevice devices = 1;
+}
+
+message GetHClientDeviceCandidatesRequest {
+  string uid = 1;
+  string hclient_id = 2;
+}
+
+message GetHClientDeviceCandidatesReply {
+  HClient hclient = 1;
+  repeated HClientDeviceCandidate candidates = 2;
+  repeated HClientDeviceIDChange device_id_changes = 3;
+}
+
+message SetHClientDeviceBindingRequest {
+  string uid = 1;
+  string hclient_id = 2;
+  string hclient_device_id = 3;
+}
+
+message SetHClientDeviceRemarkNameRequest {
+  string uid = 1;
+  string hclient_device_id = 2;
+  string remark_name = 3;
+}
+
+message DeleteHClientRequest {
+  string uid = 1;
+  string hclient_id = 2;
+}
+
+message DeleteHClientDeviceRequest {
+  string uid = 1;
+  string hclient_device_id = 2;
+}

@@ -10,11 +10,34 @@ elif [[ $# -gt 0 ]]; then
   exit 2
 fi
 
-sdk_source="${LZC_SDK_SOURCE:-https://gitee.com/linakesi/lzc-sdk.git}"
-sdk_revision="${LZC_SDK_REVISION:-81adfc8bfa8a46212ceed4cf9c5e4d675f9a0458}"
-baseos_source="${LZC_BASEOS_SOURCE:-https://gitee.com/linakesi/lzc-baseos-protos.git}"
-baseos_revision="${LZC_BASEOS_REVISION:-d8d3d3375144}"
-baseos_module_version="${LZC_BASEOS_MODULE_VERSION:-v0.0.0-20240409034726-d8d3d3375144}"
+sdk_checkout="${LZC_SDK_SOURCE:-${root}/upstream/lzc-sdk}"
+baseos_checkout="${LZC_BASEOS_SOURCE:-${root}/upstream/lzc-baseos-protos}"
+
+for checkout in "${sdk_checkout}" "${baseos_checkout}"; do
+  if [[ ! -e "${checkout}/.git" ]]; then
+    echo "missing upstream Git checkout: ${checkout}" >&2
+    echo "run: git submodule update --init" >&2
+    exit 1
+  fi
+done
+
+sdk_revision="$(git -C "${sdk_checkout}" rev-parse HEAD)"
+baseos_revision="$(git -C "${baseos_checkout}" rev-parse HEAD)"
+
+check_proto_sources() {
+  local checkout="$1"
+  shift
+  if [[ -n "$(git -C "${checkout}" status --porcelain --untracked-files=all --ignored -- "$@")" ]]; then
+    echo "uncommitted protobuf changes in upstream checkout: ${checkout}" >&2
+    echo "commit the protobuf changes or use a clean checkout before synchronizing" >&2
+    exit 1
+  fi
+}
+
+check_proto_sources "${sdk_checkout}" \
+  'protos/common/*.proto' 'protos/dlna/*.proto' \
+  'protos/localdevice/*.proto' 'protos/sys/*.proto'
+check_proto_sources "${baseos_checkout}" baseos/hserver.proto
 
 stage="$(mktemp -d "${root}/.proto-sync.XXXXXX")"
 cleanup() {
@@ -22,26 +45,6 @@ cleanup() {
   rm -rf "${stage}"
 }
 trap cleanup EXIT
-
-clone_revision() {
-  local source="$1"
-  local revision="$2"
-  local destination="$3"
-
-  if [[ -d "${source}" ]] && ! git -C "${source}" rev-parse --git-dir >/dev/null 2>&1; then
-    mkdir -p "${destination}"
-    cp -a "${source}/." "${destination}/"
-    return
-  fi
-
-  git clone --quiet --filter=blob:none --no-checkout "${source}" "${destination}"
-  git -C "${destination}" checkout --quiet --detach "${revision}"
-}
-
-sdk_checkout="${stage}/sdk-source"
-baseos_checkout="${stage}/baseos-source"
-clone_revision "${sdk_source}" "${sdk_revision}" "${sdk_checkout}"
-clone_revision "${baseos_source}" "${baseos_revision}" "${baseos_checkout}"
 
 if [[ ! -d "${sdk_checkout}/protos" ]]; then
   echo "official SDK revision has no protos directory" >&2
@@ -78,9 +81,18 @@ for source in "${sources[@]}"; do
     source_relative="baseos/hserver.proto"
   fi
 
+  if [[ ! "${source_relative}" =~ ^[A-Za-z0-9_./-]+\.proto$ ]]; then
+    printf 'unsupported protobuf source path: %q\n' "${source_relative}" >&2
+    exit 1
+  fi
+
   package="$(sed -nE 's/^package[[:space:]]+([^;]+);/\1/p' "${source}")"
   if [[ -z "${package}" ]]; then
     echo "missing protobuf package declaration: ${source_relative}" >&2
+    exit 1
+  fi
+  if [[ ! "${package}" =~ ^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$ ]]; then
+    echo "invalid protobuf package declaration: ${source_relative}" >&2
     exit 1
   fi
   package_directory="${package//./\/}"
@@ -117,10 +129,10 @@ sort -k2 "${source_manifest}" > "${stage}/proto/SOURCE_MANIFEST.sha256"
   printf '# Vendored LazyCat Protocol Sources\n\n'
   printf -- '- Official SDK: `https://gitee.com/linakesi/lzc-sdk`\n'
   printf -- '- Official SDK commit: `%s`\n' "${sdk_revision}"
-  printf -- '- BaseOS module: `gitee.com/linakesi/lzc-baseos-protos@%s`\n' "${baseos_module_version}"
+  printf -- '- BaseOS: `https://gitee.com/linakesi/lzc-baseos-protos`\n'
   printf -- '- BaseOS commit: `%s`\n' "${baseos_revision}"
   printf '\nFiles are placed under protobuf package directories, imports are rewritten accordingly, and `buf format` is applied. Message, enum, field, and service definitions remain unchanged.\n'
-  printf '\nRun `./scripts/sync-protos.sh` to refresh this tree. This maintenance command requires Git, Buf, and network access unless source overrides are provided. SDK builds do not run it.\n'
+  printf '\nUpstream commits are pinned by the Git submodules under `upstream/`. Run `git submodule update --init` once, then `./scripts/sync-protos.sh` to refresh this tree offline. To advance the pins, run `git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos`, sync, and regenerate with `./scripts/generate.sh`. SDK builds do not run these maintenance commands.\n'
 } > "${stage}/proto/UPSTREAM.md"
 
 (

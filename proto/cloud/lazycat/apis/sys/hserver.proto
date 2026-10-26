@@ -8,6 +8,9 @@ import "google/protobuf/timestamp.proto";
 option go_package = "gitee.com/linakesi/lzc-baseos-protos/lang/go/baseos";
 
 service HPortalSys {
+  // 调整Origin相关信息
+  rpc SetOriginInfo(SetOriginInfoRequest) returns (SetOriginInfoResponse) {}
+
   // 查询HServer当前状态
   rpc QueryHServerInfo(google.protobuf.Empty) returns (HServerInfo) {}
 
@@ -39,12 +42,16 @@ service HPortalSys {
   rpc RemoteSocks(RemoteSocksRequest) returns (RemoteSocksReply) {}
 
   // 仅在盒子未初始化时，可以被调用。
-  rpc SetupHServer(SetupHServerRequest) returns (SetupHServerReply);
+  rpc SetupHServer(SetupHServerRequest) returns (SetupHServerReply) {
+    option deprecated = true;
+  }
   // 重置盒子
   // 1. 向Origin请求释放盒子名下的所有域名
   // 2. 清除本地的box.name
   // 3. 进入为初始化状态
-  rpc ResetHServer(ResetHServerRequest) returns (ResetHServerReply);
+  rpc ResetHServer(ResetHServerRequest) returns (ResetHServerReply) {
+    option deprecated = true;
+  }
 
   // 注册盒子服务
   // 任何原因导致此调用结束时，都会使此服务注销。(比如hportal重启)  // 调用者需要自行重新注册
@@ -54,10 +61,32 @@ service HPortalSys {
   // 通过远端IP地址和服务注册的IP地址查询peer信息
   rpc QueryBoxServicePeerCred(QueryBoxServicePeerCredRequest) returns (QueryBoxServicePeerCredResponse);
 
-  rpc SetRelay(SetRelayRequest) returns (google.protobuf.Empty);
+  // 允许目标peer.ID挂载到自身,成功挂载后，其他节点可以通过hserver代理到目标peer.ID
+  // hserver重启后配置会丢失，调用者需要自行重新请求
+  rpc AllowProxyIt(AllowProxyItRequest) returns (AllowProxyItResponse);
 
-  rpc DumpPeers(google.protobuf.Empty) returns (PeersInfo) {}
+  // 添加HServer对外广播的地址
+  // 通过此接口最多可以添加10个地址
+  rpc AddAddress(AddAddressRequest) returns (AddAddressResponse);
+
+  // 删除HServer对外广播的地址
+  // 只能删除通过 AddAddress 添加的地址
+  rpc RemoveAddress(RemoveAddressRequest) returns (RemoveAddressResponse);
 }
+
+message SetOriginInfoRequest {
+  // 默认值 /dnsaddr/origin.lazycat.cloud
+  optional string origin_api_addr = 1;
+
+  // 默认值https://origin.lazycat.cloud/list
+  optional string relay_api_addr = 2;
+
+  optional string box_name = 3;
+
+  optional string box_domain = 4;
+}
+
+message SetOriginInfoResponse {}
 
 enum DialerRole {
   GUEST_USER = 0; // 未登录也可以调用
@@ -75,9 +104,7 @@ message RegisterBoxServiceRequest {
 
   string description = 4; //服务的自描述信息
 
-  // 服务提供的额外信息，此信息会原封不动的传递给hclient端，
-  // service可以基于此机制进行进一步的安全认证等作用
-  string extra_info = 6;
+  reserved 6;
 
   // 需要调用者的身份
   DialerRole require_dialer_role = 7;
@@ -96,15 +123,25 @@ message QueryBoxServicePeerCredRequest {
   string local_addr = 2;
   string protocol = 3;
 }
+
 message QueryBoxServicePeerCredResponse {
   // 若客户端未登录，则是SRP认证的UID，否则是登录的UID
   string uid = 1;
-  // string device_id = 2 [deprecated=true];
+
+  reserved 2;
+
   string device_version = 3;
+
   string virtual_ip = 4;
+
   string peer_id = 5;
+
   bool is_logined = 6;
+
   bool is_trust_dev = 7;
+
+  // dialer实际进来的地址
+  string remote_multi_addr = 8;
 }
 
 message RemoteSocksRequest {
@@ -211,7 +248,7 @@ message CheckPasswordRequest {
 message ChangeTrustEndDeviceRequest {
   string uid = 1;
 
-  string cid = 2; // peer ID
+  string peer_id = 2;
 
   enum Action {
     Add = 0;
@@ -256,3 +293,33 @@ message SetPasswordHashRequest {
 message SetRelayRequest {
   string relay_address = 1;
 }
+
+message SetRelaysRequest {
+  repeated string relay_addresses = 1;
+}
+
+message AllowProxyItRequest {
+  string peer_id = 1;
+
+  // true=添加、false=删除
+  bool disable = 2;
+}
+
+message AllowProxyItResponse {}
+
+message Address {
+  // 例如：/ip4/6.6.6.6/tcp/5500
+  string multiaddr = 1;
+  // 以秒为单位
+  int64 ttl = 2;
+}
+
+message AddAddressRequest {
+  repeated Address addresses = 1;
+}
+message AddAddressResponse {}
+
+message RemoveAddressRequest {
+  repeated Address addresses = 1;
+}
+message RemoveAddressResponse {}

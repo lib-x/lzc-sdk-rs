@@ -62,6 +62,7 @@ message BoxInfo {
 enum FanType {
   CPU_FAN = 0;
   MEM_FAN = 1;
+  SYS_FAN = 2;
 }
 
 message FanStatus {

@@ -11,6 +11,7 @@ use lzc_sdk::proto::common::end_device_service_client::EndDeviceServiceClient;
 use lzc_sdk::proto::common::file_handler_client::FileHandlerClient;
 use lzc_sdk::proto::common::file_handler_server;
 use lzc_sdk::proto::common::file_transfer_service_client::FileTransferServiceClient;
+use lzc_sdk::proto::common::h_client_service_client::HClientServiceClient;
 use lzc_sdk::proto::common::iscsi_service_client::IscsiServiceClient;
 use lzc_sdk::proto::common::message_service_client::MessageServiceClient;
 use lzc_sdk::proto::common::peripheral_device_service_client::PeripheralDeviceServiceClient;
@@ -58,6 +59,7 @@ fn gateway_accessors_cover_the_official_client_sets() {
         let _: BoxServiceClient<Channel> = gateway.box_service();
         let _: UserManagerClient<Channel> = gateway.users();
         let _: EndDeviceServiceClient<Channel> = gateway.devices();
+        let _: HClientServiceClient<Channel> = gateway.hclients();
         let _: RuntimePermissionManagerClient<Channel> = gateway.permissions();
         let _: PeripheralDeviceServiceClient<Channel> = gateway.peripheral_device();
         let _: IscsiServiceClient<Channel> = gateway.iscsi();

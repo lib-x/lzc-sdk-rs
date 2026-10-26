@@ -4,14 +4,16 @@ use http::Uri;
 use hyper_util::rt::TokioIo;
 use lzc_sdk::proto::sys::h_portal_sys_server::{HPortalSys, HPortalSysServer};
 use lzc_sdk::proto::sys::{
+    AddAddressRequest, AddAddressResponse, AllowProxyItRequest, AllowProxyItResponse,
     ChangeRoleReqeust, ChangeTrustEndDeviceReply, ChangeTrustEndDeviceRequest,
     CheckPasswordRequest, CreateUserRequest, DeleteUserRequest, EmitBoxServiceChangedRequest,
     GetPasswordHashRequest, GetPasswordHashResponse, HServerInfo, ListEndDeviceReply,
-    ListEndDeviceRequest, ListUsersReply, PeersInfo, QueryBoxServicePeerCredRequest,
+    ListEndDeviceRequest, ListUsersReply, QueryBoxServicePeerCredRequest,
     QueryBoxServicePeerCredResponse, QueryRoleReply, RegisterBoxServiceReply,
-    RegisterBoxServiceRequest, RemoteSocksReply, RemoteSocksRequest, ResetHServerReply,
-    ResetHServerRequest, ResetPasswordRequest, SetPasswordHashRequest, SetRelayRequest,
-    SetupHServerReply, SetupHServerRequest, UserId, remote_socks_request,
+    RegisterBoxServiceRequest, RemoteSocksReply, RemoteSocksRequest, RemoveAddressRequest,
+    RemoveAddressResponse, ResetHServerReply, ResetHServerRequest, ResetPasswordRequest,
+    SetOriginInfoRequest, SetOriginInfoResponse, SetPasswordHashRequest, SetupHServerReply,
+    SetupHServerRequest, UserId, remote_socks_request,
 };
 use lzc_sdk::{Error, HServerClient, RemoteSocksEndpoint};
 use tempfile::tempdir;
@@ -126,6 +128,13 @@ struct PortalFixture {
 
 #[tonic::async_trait]
 impl HPortalSys for PortalFixture {
+    async fn set_origin_info(
+        &self,
+        _request: Request<SetOriginInfoRequest>,
+    ) -> Result<Response<SetOriginInfoResponse>, Status> {
+        Err(Status::unimplemented("set_origin_info"))
+    }
+
     async fn query_h_server_info(
         &self,
         _request: Request<()>,
@@ -263,11 +272,24 @@ impl HPortalSys for PortalFixture {
         Err(Status::unimplemented("query_box_service_peer_cred"))
     }
 
-    async fn set_relay(&self, _request: Request<SetRelayRequest>) -> Result<Response<()>, Status> {
-        Err(Status::unimplemented("set_relay"))
+    async fn allow_proxy_it(
+        &self,
+        _request: Request<AllowProxyItRequest>,
+    ) -> Result<Response<AllowProxyItResponse>, Status> {
+        Err(Status::unimplemented("allow_proxy_it"))
     }
 
-    async fn dump_peers(&self, _request: Request<()>) -> Result<Response<PeersInfo>, Status> {
-        Err(Status::unimplemented("dump_peers"))
+    async fn add_address(
+        &self,
+        _request: Request<AddAddressRequest>,
+    ) -> Result<Response<AddAddressResponse>, Status> {
+        Err(Status::unimplemented("add_address"))
+    }
+
+    async fn remove_address(
+        &self,
+        _request: Request<RemoveAddressRequest>,
+    ) -> Result<Response<RemoveAddressResponse>, Status> {
+        Err(Status::unimplemented("remove_address"))
     }
 }

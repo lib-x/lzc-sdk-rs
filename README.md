@@ -14,7 +14,7 @@ discovery.
   credentials.
 
 Applications consuming this crate do **not** need Go, GOPATH, Buf, or protoc.
-All 42 protobuf definitions are vendored under `proto/`, and generated Rust
+Protobuf definitions are vendored under `proto/`, and generated Rust
 sources are committed under `src/gen/`. Cargo builds never read an external SDK
 checkout or a maintainer's local path.
 
@@ -30,7 +30,7 @@ Or declare the dependency directly:
 
 ```toml
 [dependencies]
-lzc-sdk = "0.1.1"
+lzc-sdk = "0.2.0"
 ```
 
 Default features expose the full protobuf, gateway, and RemoteSocks APIs.
@@ -56,7 +56,7 @@ to `/lzcapp/run/sys/lzc-apis.socket` with mTLS. A non-empty
 `LZCAPP_API_GATEWAY_ADDRESS` selects the official SDK's plaintext development
 override instead.
 
-The gateway exposes generated clients for Box, Users, Devices, Permissions,
+The gateway exposes generated clients for Box, Users, Devices, HClients, Permissions,
 PeripheralDevice, ISCSI, FileTransfer, PackageManager, AccessController,
 Btrfs, DirMonitor, Message, TvOS, and Version services.
 
@@ -150,18 +150,51 @@ All generated messages, clients, and servers are available under:
 
 ## Maintaining protobuf sources
 
-Maintainers need Git, Buf 1.71+, and network access:
+Maintainers need Git and Buf 1.71+. Initialize the pinned upstream submodules
+with network access once:
+
+```bash
+git submodule update --init
+```
+
+The official SDK and BaseOS sources live in `upstream/lzc-sdk` and
+`upstream/lzc-baseos-protos`. Verify the committed protobuf tree and Rust
+bindings with the following commands. Only initialize these top-level
+submodules; the official SDK's unrelated Swift submodule is not needed.
 
 ```bash
 ./scripts/sync-protos.sh --check
 ./scripts/generate.sh --check
 ```
 
-`sync-protos.sh` fetches pinned upstream revisions by default, rewrites imports
-to Buf package directories, formats the tree, and verifies source/transformed
-SHA-256 manifests. Source directories can be supplied explicitly through
-`LZC_SDK_SOURCE` and `LZC_BASEOS_SOURCE`; those are maintenance-only inputs and
-are never used by Cargo builds.
+To update to the latest upstream revisions:
+
+```bash
+git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos
+./scripts/sync-protos.sh
+./scripts/generate.sh
+```
+
+Commit both submodule pointers together with `proto/` and `src/gen/`.
+`sync-protos.sh` reads the checked-out revisions without fetching, rewrites
+imports to Buf package directories, formats the tree, and records source and
+transformed SHA-256 manifests plus the full upstream commit IDs. Optional
+`LZC_SDK_SOURCE` and `LZC_BASEOS_SOURCE` overrides must point to local Git
+checkouts. Cargo builds use only the committed sources; published crates
+exclude `upstream/`.
+
+Commit upstream protobuf edits before synchronizing. The script rejects
+modified, untracked, or ignored protobuf inputs so the recorded commit IDs
+always reproduce the generated tree.
+
+The **Sync protobuf sources** GitHub Actions workflow runs daily and can also
+be started manually. It updates both submodules, regenerates the bindings,
+pushes an `automation/sync-protos` branch, and dispatches the CI workflow to
+run the full build and verification checks. With no pending update, it
+dispatches CI on `main`. Review and merge the synchronization branch before
+choosing the next release version; synchronization does not publish a crate.
+If maintainers add commits to the synchronization branch, automatic updates pause
+to preserve those commits while CI continues to run on that branch.
 
 ## Verification
 

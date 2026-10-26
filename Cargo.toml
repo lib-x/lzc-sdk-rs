@@ -1,6 +1,6 @@
 [package]
 name = "lzc-sdk"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -9,6 +9,7 @@ repository = "https://github.com/lib-x/lzc-sdk-rs"
 readme = "README.md"
 keywords = ["lazycat", "grpc", "sdk"]
 categories = ["api-bindings", "network-programming"]
+exclude = ["/upstream/"]
 
 [features]
 default = ["proto_full", "gateway", "remotesocks"]

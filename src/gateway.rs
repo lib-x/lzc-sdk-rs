@@ -7,6 +7,7 @@ use crate::proto::common::box_service_client::BoxServiceClient;
 use crate::proto::common::end_device_service_client::EndDeviceServiceClient;
 use crate::proto::common::file_handler_client::FileHandlerClient;
 use crate::proto::common::file_transfer_service_client::FileTransferServiceClient;
+use crate::proto::common::h_client_service_client::HClientServiceClient;
 use crate::proto::common::iscsi_service_client::IscsiServiceClient;
 use crate::proto::common::message_service_client::MessageServiceClient;
 use crate::proto::common::peripheral_device_service_client::PeripheralDeviceServiceClient;
@@ -94,6 +95,11 @@ impl ApiGateway {
     #[must_use]
     pub fn devices(&self) -> EndDeviceServiceClient<Channel> {
         EndDeviceServiceClient::new(self.channel.clone())
+    }
+
+    #[must_use]
+    pub fn hclients(&self) -> HClientServiceClient<Channel> {
+        HClientServiceClient::new(self.channel.clone())
     }
 
     #[must_use]

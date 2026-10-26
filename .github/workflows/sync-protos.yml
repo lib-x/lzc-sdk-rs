@@ -1,0 +1,87 @@
+name: Sync protobuf sources
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-protos
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'lib-x/lzc-sdk-rs'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          submodules: true
+
+      - name: Preserve maintainer commits on the synchronization branch
+        id: guard
+        run: |
+          branch=automation/sync-protos
+          expected_sha="$(git ls-remote origin "refs/heads/${branch}" | cut -f1)"
+          echo "expected_sha=${expected_sha}" >> "$GITHUB_OUTPUT"
+          if [[ -n "$expected_sha" ]]; then
+            git fetch --no-tags origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+            manual_commits="$(git log "origin/main..origin/${branch}" --format='%ce' | awk '$0 != "41898282+github-actions[bot]@users.noreply.github.com" { print }')"
+            if [[ -n "$manual_commits" ]]; then
+              echo 'protected=true' >> "$GITHUB_OUTPUT"
+              echo "::notice::${branch} has maintainer commits; preserving its branch and rerunning CI."
+            fi
+          fi
+
+      - uses: dtolnay/rust-toolchain@360a4e93673de6630fac2478bc9e35244b01a759 # 1.88.0
+        with:
+          components: clippy,rustfmt
+
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1
+        with:
+          version: 1.71.0
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          cache-directories: .tools
+
+      - name: Update upstream protobuf sources
+        if: steps.guard.outputs.protected != 'true'
+        run: |
+          git submodule update --remote upstream/lzc-sdk upstream/lzc-baseos-protos
+          ./scripts/sync-protos.sh
+          ./scripts/generate.sh
+
+      - name: Commit synchronized sources to the update branch
+        if: steps.guard.outputs.protected != 'true'
+        id: commit
+        env:
+          EXPECTED_SHA: ${{ steps.guard.outputs.expected_sha }}
+        run: |
+          git add upstream/lzc-sdk upstream/lzc-baseos-protos proto src/gen
+          if git diff --cached --quiet; then
+            echo 'ci_ref=main' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore: sync upstream protobuf sources'
+          git push --force-with-lease="refs/heads/automation/sync-protos:${EXPECTED_SHA}" origin HEAD:refs/heads/automation/sync-protos
+          echo 'ci_ref=automation/sync-protos' >> "$GITHUB_OUTPUT"
+
+      # GITHUB_TOKEN pushes do not trigger push workflows. Explicitly dispatch
+      # CI so updates are built even when organization policy forbids bot PRs.
+      - name: Dispatch build and verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CI_REF: ${{ steps.guard.outputs.protected == 'true' && 'automation/sync-protos' || steps.commit.outputs.ci_ref }}
+        run: gh workflow run ci.yml --ref "$CI_REF"

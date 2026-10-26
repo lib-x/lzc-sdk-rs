@@ -10,10 +10,10 @@ service NetworkManager {
   rpc Query(google.protobuf.Empty) returns (NetworkInformation) {}
   // 获取附近的 Wi-Fi 网络列表，扫描过程中每发现一个热点就推送一次。
   rpc ListWifiNetworks(ListWifiNetworksRequest) returns (stream WifiNetwork) {}
-  // 在本地网络执行 WS-Discovery Probe，返回在超时时间内收到的设备响应。
-  rpc WSDiscovery(WSDiscoveryRequest) returns (WSDiscoveryResponse) {}
-  // 通过手机客户端原生网络栈请求本地 http 资源。
-  rpc NativeHttpRequest(NativeHttpRequestRequest) returns (NativeHttpRequestResponse) {}
+  // 在本地网络执行 WS-Discovery Probe，每发现一个设备就立即推送一次。
+  rpc WSDiscovery(WSDiscoveryRequest) returns (stream WSDiscoveryDevice) {}
+  // 枚举手机客户端当前启用网卡上的非回环 IPv4 地址。
+  rpc ListLocalIPAddresses(google.protobuf.Empty) returns (ListLocalIPAddressesResponse) {}
 }
 
 enum ConnectionType {
@@ -79,29 +79,11 @@ message WSDiscoveryDevice {
   string mac_addr = 8;
 }
 
-message WSDiscoveryResponse {
-  repeated WSDiscoveryDevice devices = 1;
+message LocalIPAddress {
+  string interface_name = 1;
+  string ip_address = 2;
 }
 
-message NativeHttpRequestRequest {
-  string url = 1;
-  string method = 2;
-  map<string, string> headers = 3;
-  string body = 4;
-  string base64_body = 5;
-  int32 timeout_ms = 6;
-}
-
-message NativeHttpRequestResponse {
-  bool ok = 1;
-  int32 status = 2;
-  map<string, HeaderValues> headers = 3;
-  string body = 4;
-  string base64_body = 5;
-  bool truncated = 6;
-  string error = 7;
-}
-
-message HeaderValues {
-  repeated string values = 1;
+message ListLocalIPAddressesResponse {
+  repeated LocalIPAddress addresses = 1;
 }
