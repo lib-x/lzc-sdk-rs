@@ -17,11 +17,21 @@ use lzc_sdk::proto::common::message_service_client::MessageServiceClient;
 use lzc_sdk::proto::common::peripheral_device_service_client::PeripheralDeviceServiceClient;
 use lzc_sdk::proto::common::permission_manager_client::PermissionManagerClient as RuntimePermissionManagerClient;
 use lzc_sdk::proto::common::user_manager_client::UserManagerClient;
+use lzc_sdk::proto::dlna::remote_media_player_service_client::RemoteMediaPlayerServiceClient;
+use lzc_sdk::proto::localdevice::ble_manager_client::BleManagerClient;
+use lzc_sdk::proto::localdevice::client_client::ClientClient;
+use lzc_sdk::proto::localdevice::cloud_driver_client::CloudDriverClient;
 use lzc_sdk::proto::localdevice::contacts_manager_client::ContactsManagerClient;
 use lzc_sdk::proto::localdevice::device_service_client::DeviceServiceClient;
 use lzc_sdk::proto::localdevice::device_service_server::{DeviceService, DeviceServiceServer};
 use lzc_sdk::proto::localdevice::dialog_manager_client::DialogManagerClient;
+use lzc_sdk::proto::localdevice::local_launch_service_client::LocalLaunchServiceClient;
 use lzc_sdk::proto::localdevice::network_manager_client::NetworkManagerClient;
+use lzc_sdk::proto::localdevice::notification_service_client::NotificationServiceClient;
+use lzc_sdk::proto::localdevice::notification_service_server::{
+    NotificationService, NotificationServiceServer,
+};
+use lzc_sdk::proto::localdevice::oneway_sync_client::OnewaySyncClient;
 use lzc_sdk::proto::localdevice::permission_manager_client::PermissionManagerClient;
 use lzc_sdk::proto::localdevice::permission_manager_server::{
     PermissionManager, PermissionManagerServer,
@@ -32,13 +42,15 @@ use lzc_sdk::proto::localdevice::remote_control_client::RemoteControlClient;
 use lzc_sdk::proto::localdevice::rim_client::RimClient;
 use lzc_sdk::proto::localdevice::user_config_client::UserConfigClient;
 use lzc_sdk::proto::localdevice::{
-    DeviceInfo, ListPermissionsReply, LocalServiceState, LocalServiceStatus, PermissionReply,
-    PermissionRequest, QueryServiceStatusReply, QueryServiceStatusRequest, RequestAuthTokenRequest,
-    RequestAuthTokenResponse,
+    DeviceInfo, ListPermissionsReply, LocalServiceState, LocalServiceStatus, NotifyRequest,
+    NotifyResponse, PermissionReply, PermissionRequest, QueryServiceStatusReply,
+    QueryServiceStatusRequest, RequestAuthTokenRequest, RequestAuthTokenResponse,
 };
 use lzc_sdk::proto::sys::access_controler_service_client::AccessControlerServiceClient;
 use lzc_sdk::proto::sys::btrfs_util_client::BtrfsUtilClient;
+use lzc_sdk::proto::sys::dev_opt_service_client::DevOptServiceClient;
 use lzc_sdk::proto::sys::dir_monitor_client::DirMonitorClient;
+use lzc_sdk::proto::sys::network_manager_client::NetworkManagerClient as BoxNetworkManagerClient;
 use lzc_sdk::proto::sys::package_manager_client::PackageManagerClient;
 use lzc_sdk::proto::sys::tv_os_client::TvOsClient;
 use lzc_sdk::proto::sys::version_info_service_client::VersionInfoServiceClient;
@@ -68,6 +80,9 @@ fn gateway_accessors_cover_the_official_client_sets() {
         let _: AccessControlerServiceClient<Channel> = gateway.access_controller();
         let _: BtrfsUtilClient<Channel> = gateway.btrfs();
         let _: DirMonitorClient<Channel> = gateway.dir_monitor();
+        let _: BoxNetworkManagerClient<Channel> = gateway.network();
+        let _: RemoteMediaPlayerServiceClient<Channel> = gateway.remote_media_player();
+        let _: DevOptServiceClient<Channel> = gateway.device_options();
         let _: MessageServiceClient<Channel> = gateway.message();
         let _: TvOsClient<Channel> = gateway.tv_os();
         let _: VersionInfoServiceClient<Channel> = gateway.version();
@@ -85,6 +100,12 @@ fn gateway_accessors_cover_the_official_client_sets() {
         let _: RimClient<DeviceServiceTransport> = proxy.rim();
         let _: RemoteControlClient<DeviceServiceTransport> = proxy.remote_control();
         let _: ContactsManagerClient<DeviceServiceTransport> = proxy.contacts();
+        let _: NotificationServiceClient<DeviceServiceTransport> = proxy.notification();
+        let _: LocalLaunchServiceClient<DeviceServiceTransport> = proxy.local_launch();
+        let _: ClientClient<DeviceServiceTransport> = proxy.client();
+        let _: CloudDriverClient<DeviceServiceTransport> = proxy.cloud_driver();
+        let _: OnewaySyncClient<DeviceServiceTransport> = proxy.oneway_sync();
+        let _: BleManagerClient<DeviceServiceTransport> = proxy.ble();
     }
 
     let _ = runtime as fn(&ApiGateway);
@@ -92,9 +113,48 @@ fn gateway_accessors_cover_the_official_client_sets() {
 }
 
 #[tokio::test]
+async fn notification_client_sends_authenticated_payload_and_preserves_rejection() {
+    let pki = TestPki::new(AppKeyKind::Ed25519);
+    let fixture = DeviceFixture::default();
+    let (url, server) = start_server(&pki, fixture.clone()).await;
+    let directory = tempdir().expect("tempdir");
+    let credentials = ClientCredentials::load(pki.write_credentials(directory.path()))
+        .await
+        .expect("load credentials");
+    let proxy = DeviceProxy::connect(&url, credentials)
+        .await
+        .expect("connect device proxy");
+    let notification = NotifyRequest {
+        title: "雁字渠道测试".to_owned(),
+        body: "这是一条测试通知。".to_owned(),
+        deeplink_url: None,
+    };
+
+    proxy
+        .notification()
+        .notify(notification.clone())
+        .await
+        .expect("notify");
+    assert_eq!(
+        fixture.notifications.lock().await.as_slice(),
+        std::slice::from_ref(&notification)
+    );
+
+    fixture.reject_notifications.store(true, Ordering::SeqCst);
+    let status = proxy
+        .notification()
+        .notify(notification)
+        .await
+        .expect_err("notification rejected");
+    assert_eq!(status.code(), tonic::Code::PermissionDenied);
+    assert_eq!(fixture.notifications.lock().await.len(), 1);
+    server.abort();
+}
+
+#[tokio::test]
 async fn service_status_maps_states_deduplicates_and_preserves_reasons() {
     let pki = TestPki::new(AppKeyKind::Ed25519);
-    let status = StatusFixture::default();
+    let status = DeviceFixture::default();
     let (url, server) = start_server(&pki, status.clone()).await;
     let directory = tempdir().expect("tempdir");
     let credentials = ClientCredentials::load(pki.write_credentials(directory.path()))
@@ -149,7 +209,7 @@ async fn service_status_maps_states_deduplicates_and_preserves_reasons() {
 #[tokio::test]
 async fn unimplemented_service_status_has_typed_error() {
     let pki = TestPki::new(AppKeyKind::Ed25519);
-    let status = StatusFixture::default();
+    let status = DeviceFixture::default();
     status.unimplemented.store(true, Ordering::SeqCst);
     let (url, server) = start_server(&pki, status).await;
     let directory = tempdir().expect("tempdir");
@@ -171,13 +231,30 @@ async fn unimplemented_service_status_has_typed_error() {
 }
 
 #[derive(Clone, Default)]
-struct StatusFixture {
+struct DeviceFixture {
     unimplemented: Arc<AtomicBool>,
+    reject_notifications: Arc<AtomicBool>,
     requests: Arc<Mutex<Vec<Vec<String>>>>,
+    notifications: Arc<Mutex<Vec<NotifyRequest>>>,
 }
 
 #[tonic::async_trait]
-impl DeviceService for StatusFixture {
+impl NotificationService for DeviceFixture {
+    async fn notify(
+        &self,
+        request: Request<NotifyRequest>,
+    ) -> Result<Response<NotifyResponse>, Status> {
+        require_token(&request)?;
+        if self.reject_notifications.load(Ordering::SeqCst) {
+            return Err(Status::permission_denied("notifications disabled"));
+        }
+        self.notifications.lock().await.push(request.into_inner());
+        Ok(Response::new(NotifyResponse {}))
+    }
+}
+
+#[tonic::async_trait]
+impl DeviceService for DeviceFixture {
     async fn query(&self, _request: Request<()>) -> Result<Response<DeviceInfo>, Status> {
         Ok(Response::new(DeviceInfo::default()))
     }
@@ -269,7 +346,7 @@ impl PermissionManager for AuthFixture {
 
 async fn start_server(
     pki: &TestPki,
-    status: StatusFixture,
+    device: DeviceFixture,
 ) -> (String, tokio::task::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
@@ -282,7 +359,8 @@ async fn start_server(
             .tls_config(tls)
             .expect("gateway fixture TLS")
             .add_service(PermissionManagerServer::new(auth))
-            .add_service(DeviceServiceServer::new(status))
+            .add_service(DeviceServiceServer::new(device.clone()))
+            .add_service(NotificationServiceServer::new(device))
             .serve_with_incoming(TcpListenerStream::new(listener))
             .await
             .expect("serve gateway fixture");

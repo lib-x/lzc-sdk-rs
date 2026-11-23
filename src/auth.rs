@@ -9,6 +9,7 @@ use tokio::time::Instant;
 use tonic::transport::Channel;
 
 use crate::device_transport::connect_device_channel;
+use crate::proto::localdevice::notification_service_client::NotificationServiceClient;
 use crate::proto::localdevice::permission_manager_client::PermissionManagerClient;
 use crate::proto::localdevice::{RequestAuthTokenRequest, RequestAuthTokenResponse};
 use crate::{AuthenticatedService, ClientCredentials, Error};
@@ -124,6 +125,12 @@ impl TokenProvider {
     #[must_use]
     pub fn authenticated_service(&self) -> AuthenticatedService<Channel> {
         AuthenticatedService::new(self.inner.channel.clone(), self.clone())
+    }
+
+    /// Create a notification client that attaches the cached device token.
+    #[must_use]
+    pub fn notification(&self) -> NotificationServiceClient<AuthenticatedService<Channel>> {
+        NotificationServiceClient::new(self.authenticated_service())
     }
 }
 

@@ -13,10 +13,17 @@ use crate::proto::common::message_service_client::MessageServiceClient;
 use crate::proto::common::peripheral_device_service_client::PeripheralDeviceServiceClient;
 use crate::proto::common::permission_manager_client::PermissionManagerClient as RuntimePermissionManagerClient;
 use crate::proto::common::user_manager_client::UserManagerClient;
+use crate::proto::dlna::remote_media_player_service_client::RemoteMediaPlayerServiceClient;
+use crate::proto::localdevice::ble_manager_client::BleManagerClient;
+use crate::proto::localdevice::client_client::ClientClient;
+use crate::proto::localdevice::cloud_driver_client::CloudDriverClient;
 use crate::proto::localdevice::contacts_manager_client::ContactsManagerClient;
 use crate::proto::localdevice::device_service_client::DeviceServiceClient;
 use crate::proto::localdevice::dialog_manager_client::DialogManagerClient;
+use crate::proto::localdevice::local_launch_service_client::LocalLaunchServiceClient;
 use crate::proto::localdevice::network_manager_client::NetworkManagerClient;
+use crate::proto::localdevice::notification_service_client::NotificationServiceClient;
+use crate::proto::localdevice::oneway_sync_client::OnewaySyncClient;
 use crate::proto::localdevice::permission_manager_client::PermissionManagerClient;
 use crate::proto::localdevice::photo_library_client::PhotoLibraryClient;
 use crate::proto::localdevice::remote_control_client::RemoteControlClient;
@@ -24,7 +31,9 @@ use crate::proto::localdevice::rim_client::RimClient;
 use crate::proto::localdevice::user_config_client::UserConfigClient;
 use crate::proto::sys::access_controler_service_client::AccessControlerServiceClient;
 use crate::proto::sys::btrfs_util_client::BtrfsUtilClient;
+use crate::proto::sys::dev_opt_service_client::DevOptServiceClient;
 use crate::proto::sys::dir_monitor_client::DirMonitorClient;
+use crate::proto::sys::network_manager_client::NetworkManagerClient as BoxNetworkManagerClient;
 use crate::proto::sys::package_manager_client::PackageManagerClient;
 use crate::proto::sys::tv_os_client::TvOsClient;
 use crate::proto::sys::version_info_service_client::VersionInfoServiceClient;
@@ -143,6 +152,21 @@ impl ApiGateway {
     }
 
     #[must_use]
+    pub fn network(&self) -> BoxNetworkManagerClient<Channel> {
+        BoxNetworkManagerClient::new(self.channel.clone())
+    }
+
+    #[must_use]
+    pub fn remote_media_player(&self) -> RemoteMediaPlayerServiceClient<Channel> {
+        RemoteMediaPlayerServiceClient::new(self.channel.clone())
+    }
+
+    #[must_use]
+    pub fn device_options(&self) -> DevOptServiceClient<Channel> {
+        DevOptServiceClient::new(self.channel.clone())
+    }
+
+    #[must_use]
     pub fn message(&self) -> MessageServiceClient<Channel> {
         MessageServiceClient::new(self.channel.clone())
     }
@@ -226,6 +250,13 @@ impl DeviceProxy {
         NetworkManagerClient::new(self.service.clone())
     }
 
+    /// Access the device's system notification RPC.
+    /// An accepted RPC does not report whether the operating system displayed it.
+    #[must_use]
+    pub fn notification(&self) -> NotificationServiceClient<DeviceServiceTransport> {
+        self.provider.notification()
+    }
+
     #[must_use]
     pub fn permission(&self) -> PermissionManagerClient<DeviceServiceTransport> {
         PermissionManagerClient::new(self.service.clone())
@@ -249,6 +280,31 @@ impl DeviceProxy {
     #[must_use]
     pub fn contacts(&self) -> ContactsManagerClient<DeviceServiceTransport> {
         ContactsManagerClient::new(self.service.clone())
+    }
+
+    #[must_use]
+    pub fn local_launch(&self) -> LocalLaunchServiceClient<DeviceServiceTransport> {
+        LocalLaunchServiceClient::new(self.service.clone())
+    }
+
+    #[must_use]
+    pub fn client(&self) -> ClientClient<DeviceServiceTransport> {
+        ClientClient::new(self.service.clone())
+    }
+
+    #[must_use]
+    pub fn cloud_driver(&self) -> CloudDriverClient<DeviceServiceTransport> {
+        CloudDriverClient::new(self.service.clone())
+    }
+
+    #[must_use]
+    pub fn oneway_sync(&self) -> OnewaySyncClient<DeviceServiceTransport> {
+        OnewaySyncClient::new(self.service.clone())
+    }
+
+    #[must_use]
+    pub fn ble(&self) -> BleManagerClient<DeviceServiceTransport> {
+        BleManagerClient::new(self.service.clone())
     }
 
     #[must_use]

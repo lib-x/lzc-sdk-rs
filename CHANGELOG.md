@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] - 2026-11-23
+
+### Added
+
+- Authenticated device clients for notifications, local launch, client management,
+  cloud drive, one-way sync, and BLE, matching the upstream JavaScript device proxy.
+- Gateway accessors for box networking, remote media playback, and device options.
+
+### Fixed
+
+- Use the GitHub workflow token for Buf downloads to avoid unauthenticated API rate limits.
+- Update TLS, HTTP/2, and Tokio dependencies to patched releases.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

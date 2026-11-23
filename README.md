@@ -30,7 +30,7 @@ Or declare the dependency directly:
 
 ```toml
 [dependencies]
-lzc-sdk = "0.2.0"
+lzc-sdk = "0.2.1"
 ```
 
 Default features expose the full protobuf, gateway, and RemoteSocks APIs.
@@ -58,7 +58,8 @@ override instead.
 
 The gateway exposes generated clients for Box, Users, Devices, HClients, Permissions,
 PeripheralDevice, ISCSI, FileTransfer, PackageManager, AccessController,
-Btrfs, DirMonitor, Message, TvOS, and Version services.
+Btrfs, DirMonitor, box networking, remote media playback, device options,
+Message, TvOS, and Version services.
 
 ## Remote device APIs
 
@@ -88,7 +89,14 @@ the token into every generated device client request. Token and private-key
 Debug output is redacted.
 
 Available device clients cover Config, Device, Dialog, PhotoLibrary, Network,
-Permission, FileHandler, RIM, RemoteControl, and Contacts.
+Permission, FileHandler, RIM, RemoteControl, Contacts, LocalLaunch, Client,
+CloudDriver, OnewaySync, BLE, and Notification.
+
+Use `device.notification().notify(request)` to send a device notification. The
+device returns an empty response when it accepts the RPC. The protocol provides
+no receipt for display by the operating system. Declare `user.notify` in the
+LazyCat package and enable notifications for the LazyCat client on the target
+device.
 
 ## HPortalSys and RemoteSocks
 
